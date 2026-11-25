@@ -1,0 +1,2642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Injury Prevention Level 3</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0a; font-family: 'Barlow', sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px; color: #fff;
+  }
+
+  .header { text-align: center; margin-bottom: 14px; }
+  .header h1 {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px;
+    letter-spacing: 2px; text-transform: uppercase; color: #C61D23;
+  }
+
+  .header .kids {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 13px;
+    letter-spacing: 2px; text-transform: uppercase; color: #bbb; margin-top: 3px;
+  }
+
+  .phase-label {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; color: #fff; background: #C61D23;
+    padding: 4px 16px; margin-bottom: 12px; min-width: 290px; text-align: center;
+  }
+
+  .scene { position: relative; width: 360px; height: 400px; overflow: hidden; }
+  .scene svg { position: absolute; inset: 0; display: block; }
+
+  /* Coaching cue — flashes in, then holds for the phase */
+  .cue {
+    position: absolute; left: 50%; top: 16px; transform: translateX(-50%); width: 300px; z-index: 30;
+    text-align: center; pointer-events: none; opacity: 0; white-space: pre-line;   /* \n in a cue = new line */
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 21px; line-height: 1.15;
+    letter-spacing: 1.5px; text-transform: uppercase; color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.85);
+  }
+  .cue::after {
+    content: ''; display: block; width: 46px; height: 3px; background: #C61D23; margin: 6px auto 0;
+  }
+  .cue.show { animation: cueIn 0.9s ease-out 1 both; }
+
+  /* Fast-forward badge — shown while a phase runs faster than real time */
+  .ff {
+    position: absolute; right: 10px; bottom: 10px; z-index: 30; padding: 3px 9px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px;
+    letter-spacing: 1.5px; text-transform: uppercase; color: #fff;
+    background: rgba(198,29,35,0.9); opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .ff.show { opacity: 1; }
+  .ff.reps { right: auto; left: 10px; background: rgba(10,10,10,0.8); }   /* rep counter */
+
+  /* Repeat card — shown instead of animating the same set again */
+  .card {
+    position: absolute; left: 50%; top: 44%; width: 270px; z-index: 31; pointer-events: none;
+    transform: translate(-50%,-50%); opacity: 0; text-align: center;
+    background: rgba(10,10,10,0.88); border-top: 3px solid #C61D23; padding: 12px 16px 14px;
+  }
+  .card .k   { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px;
+               letter-spacing: 3px; text-transform: uppercase; color: #C61D23; }
+  .card .big { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 30px; line-height: 1.1;
+               letter-spacing: 1.5px; text-transform: uppercase; color: #fff; margin: 2px 0 6px; }
+  .card .sub { font-size: 12px; line-height: 1.45; color: #ccc; }
+  .card.show { animation: cardIn 1s ease-out 1 both; }
+  @keyframes cardIn { 0%{opacity:0;transform:translate(-50%,-50%) scale(.92)} 25%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+                      40%{opacity:.35} 55%{opacity:1} 100%{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+
+  /* Area labels — flash in on the overview, hidden once the drill starts */
+  #labels { opacity: 0; transition: opacity 0.4s; }
+  #labels.show { opacity: 1; animation: labelFlash 1.4s ease-out 1; }
+  @keyframes labelFlash { 0%{opacity:0} 15%{opacity:1} 30%{opacity:.2} 45%{opacity:1} 60%{opacity:.3} 75%{opacity:1} }
+  #labels text {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; text-anchor: middle; paint-order: stroke;
+    stroke: rgba(0,0,0,0.75); stroke-width: 3px;
+  }
+  #labels .dim  { font-size: 15px; fill: #ffb347; }
+  #labels .name { font-size: 11px; fill: #fff; }
+  /* Coach's call — shown above the coach's head while the command is given */
+  #call {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 1.5px;
+    text-transform: uppercase; text-anchor: middle; fill: #fff;
+    paint-order: stroke; stroke: #C61D23; stroke-width: 5px; stroke-linejoin: round;
+  }
+  @keyframes cueIn { 0%{opacity:0;transform:translate(-50%,6px)} 30%{opacity:1;transform:translate(-50%,0)}
+                     55%{opacity:0.25} 100%{opacity:1;transform:translate(-50%,0)} }
+
+  /* Legend */
+  .legend { display: flex; gap: 14px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px; font-size: 11px; color: #bbb;
+    font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .legend-dot.red  { background: #C61D23; }
+  .legend-dot.coach { background: #e9e9e9; }
+  .legend-dot.ball  { width: 9px; height: 9px; background: #f4f4f4; border: 1px solid #555; }
+  .legend-cone { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent;
+                 border-bottom: 10px solid #f28c1a; }
+  .legend-guide { width: 14px; height: 3px; background: #ffe066; border-radius: 2px; }
+  .legend-dash  { width: 16px; border-top: 2px dashed #fff; }
+
+  .step-indicators { display: flex; gap: 3px; margin-top: 10px; }
+  .step-dot { width: 5px; height: 5px; border-radius: 50%; background: #333; transition: background 0.3s; }
+  .step-dot.active { background: #C61D23; }
+  .step-dot.done   { background: #555; }
+  .step-dot.gap    { margin-left: 7px; }   /* first phase of a new part */
+  .phase-label.show { animation: bannerIn 0.7s ease-out 1; }
+  .part-time { font-weight: 600; opacity: 0.8; margin-left: 10px; padding-left: 10px;
+               border-left: 1px solid rgba(255,255,255,0.5); }
+  @keyframes bannerIn { 0%{filter:brightness(1.8)} 100%{filter:brightness(1)} }
+
+  .voice-row { display: flex; justify-content: center; margin-top: 10px; }
+  .btn-voice { background: transparent; color: #888; border: 1px solid #333; font-size: 12px; padding: 6px 14px; }
+  .btn-voice:hover { border-color: #666; color: #ccc; }
+  .btn-voice.on { color: #fff; border-color: #C61D23; background: rgba(198,29,35,0.15); }
+
+  .desc {
+    font-size: 11px; color: #777; text-align: center; max-width: 310px;
+    margin-top: 6px; line-height: 1.5; min-height: 32px;
+  }
+
+  .controls { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .btn {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase; padding: 8px 18px;
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary            { background: #C61D23; color: #fff; }
+  .btn-primary:hover      { background: #e02228; }
+  .btn-secondary          { background: transparent; color: #888; border: 1px solid #333; }
+  .btn-secondary:hover    { border-color: #666; color: #ccc; }
+
+  /* TSI Logo */
+  .tsi-logo-wrap{display:flex;justify-content:center;padding:0 0 12px;width:100%;}
+  .tsi-logo{height:38px;width:auto;display:block;}
+</style>
+</head>
+<body>
+<div class="tsi-logo-wrap"><img class="tsi-logo" alt="TSI" src="data:image/jpeg;base64,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"/></div>
+
+<div class="header">
+  <h1 id="partTitle">FIFA 11+ Level 3 — Part 1</h1>
+  <div class="kids" id="subLine">Ages 12+ · The Bench Exercises</div>
+</div>
+
+<div class="phase-label" id="partName">Alertness Running Game</div>
+
+<div class="scene">
+  <svg id="svg" width="360" height="400" viewBox="0 0 360 400">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0a0a0a"/><stop offset="1" stop-color="#17271b"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="360" height="400" fill="url(#sky)"/>
+    <path id="ground" fill="#1a5c1a"/>
+    <path id="stripes" fill="rgba(255,255,255,0.045)"/>
+    <path id="field" fill="rgba(255,255,255,0.75)"/>
+    <path id="area" fill="rgba(242,140,26,0.08)"/>
+    <path id="areaLine" fill="none" stroke="#f28c1a" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <path id="dirs" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="5 4" opacity="0.85"/>
+    <path id="dirHeads" fill="#fff" opacity="0.85"/>
+    <g id="shadows"></g>
+    <g id="pool" stroke-linecap="round" stroke-linejoin="round"></g>
+    <g id="labels"></g>
+    <text id="call"></text>
+  </svg>
+  <div class="cue" id="cue"></div>
+  <div class="card" id="card"></div>
+  <div class="ff" id="ff">⏩ 3× speed</div>
+  <div class="ff reps" id="reps"></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot red"></div>Players</div>
+  <div class="legend-item"><div class="legend-dot coach"></div>Coach</div>
+  <div class="legend-item"><div class="legend-dot ball"></div>Ball</div>
+  <div class="legend-item"><div class="legend-cone"></div>Cones / work area</div>
+  <div class="legend-item"><div class="legend-dash"></div>Jump direction</div>
+  <div class="legend-item"><div class="legend-guide"></div>Alignment line</div>
+</div>
+
+<div class="step-indicators" id="stepDots"></div>
+<div class="desc" id="desc"></div>
+
+<div class="controls">
+  <button class="btn btn-secondary" id="prevBtn" onclick="changePhase(-1)">← Back</button>
+  <button class="btn btn-primary"   id="playBtn" onclick="toggleAuto()">▶ Auto</button>
+  <button class="btn btn-secondary" id="nextBtn" onclick="changePhase(1)">Next →</button>
+</div>
+<div class="voice-row" id="voiceRow"><button class="btn btn-voice" id="voiceBtn" onclick="toggleVoice()">🔈 Voiceover: Off</button></div>
+
+<script>
+/*@@ENGINE*/
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  TSI 3D ENGINE — shared by every 3D game animation               ║
+// ║  Master copy: tools/engine-3d.js. Do not edit inside an output   ║
+// ║  file — edit here, then run tools/splice-engine.jxa.             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+// The drill script (after this block) must define:
+//   cam    = lookCam({...})                       the camera
+//   W(p)   board px [x,y] → world [x, z] metres
+//   PH     phases: { pl:[[x,y]…], passer, … }      passer = index of the player on the ball
+//   DRILL  { teams:['red',…], roles:['att'|'def'|'gk',…],
+//            oneTouch:bool  (short non-split passes played first time),
+//            flow:bool      (Auto: next pass starts straight off the touch, runs carry on),
+//            centre:idx=>[x,z] (optional; the grid the ball is in, default [0,0]) }
+// World: x right, y up, z away from the camera (metres). Ground is y = 0.
+const PI = Math.PI, TAU = PI*2, SVGNS = 'http://www.w3.org/2000/svg';
+const add3  = (a,b)=>[a[0]+b[0], a[1]+b[1], a[2]+b[2]];
+const sc3   = (a,s)=>[a[0]*s, a[1]*s, a[2]*s];
+const lerp3 = (a,b,t)=>[a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+const sstep = (a,b,x)=>{ const k=Math.min(1, Math.max(0, (x-a)/(b-a))); return k*k*(3-2*k); };
+const mix   = (a,b,t)=>a+(b-a)*t;
+const clamp = (v,a,b)=>Math.max(a, Math.min(b, v));
+const wrap  = a=>Math.atan2(Math.sin(a), Math.cos(a));
+const ease  = k=>k*k*(3-2*k);
+const frac  = x=>x-Math.floor(x);
+const mixQ  = (a,b,k)=>a.map((v,i)=>mix(v, b[i], k));
+const unit  = v=>{ const n=Math.hypot(v[0],v[1])||1; return [v[0]/n, v[1]/n]; };
+const dist  = (a,b)=>Math.hypot(a[0]-b[0], a[1]-b[1]);
+const lerp2 = (a,b,k)=>[mix(a[0],b[0],k), mix(a[1],b[1],k)];
+
+// ── Camera: turned by `yaw` (0 = looking along +z), tilted down by `pitch` ──
+function toCam(cam, P){
+  const dx=P[0]-cam.pos[0], ry=P[1]-cam.pos[1], dz=P[2]-cam.pos[2];
+  const cy=Math.cos(cam.yaw), sy=Math.sin(cam.yaw), cp=Math.cos(cam.pitch), sp=Math.sin(cam.pitch);
+  const rx=dx*cy - dz*sy, rz=dx*sy + dz*cy;
+  return [ rx, ry*cp + rz*sp, -ry*sp + rz*cp ];
+}
+const toScreen = (cam, c)=>[ cam.cx + cam.f*c[0]/c[2], cam.cy - cam.f*c[1]/c[2], c[2] ];
+const project  = (cam, P)=>toScreen(cam, toCam(cam, P));
+function lookCam(O){
+  const d=[O.look[0]-O.pos[0], O.look[1]-O.pos[1], O.look[2]-O.pos[2]];
+  return { pos:O.pos, yaw:Math.atan2(d[0],d[2]), pitch:Math.atan2(-d[1], Math.hypot(d[0],d[2])), f:O.f, cx:O.cx||180, cy:O.cy };
+}
+
+// ── Figure rig — body frame: x = figure's right, y = up, z = forward ──
+const B = { LT:.44, LS:.44, ANK:.07, HIP:.1, TOR:.5, SHW:.19, LU:.28, LF:.26, NECK:.17, FOOT:.17 };
+const TEAM = { red:'#C61D23', blue:'#1a6eb5', orange:'#b86d00', green:'#2e8b3e', yellow:'#d9b100', white:'#e8e8e8' };
+const SKIN='#cfd3d6', SHORTS='#141414', BOOT='#0d0d0d', HAIR='#2b2018';
+// Pose = flat array: lift, lean, roll, legL[a,b,g], legR[a,b,g], armL[a,b,e], armR[a,b,e], toe[L,R], anchor, neck
+const Q = (lift,lean,roll,l0,l1,a0,a1,toe,anchor,neck)=>
+  [lift,lean,roll,...l0,...l1,...a0,...a1, ...(Array.isArray(toe) ? toe : [toe||0, toe||0]), anchor||0, neck||0];
+
+function legIK(z, y){
+  const L=B.LT, r=Math.min(Math.hypot(z,y), 2*L-1e-4), al=Math.acos(r/(2*L));
+  return [Math.atan2(z,y)+al, 2*al];
+}
+
+// Forward kinematics → joint positions in the body frame (lowest foot sits on the ground)
+function fk(q){
+  const lift=q[0], lean=q[1], roll=q[2];
+  const leg = i=>({ a:q[3+i*3], b:q[4+i*3], g:q[5+i*3] });
+  const arm = i=>({ a:q[9+i*3], b:q[10+i*3], e:q[11+i*3] });
+  const drop = L=>(B.LT*Math.cos(L.a) + B.LS*Math.cos(L.a-L.b))*Math.cos(L.g);
+  const tp = i=>q[15+i]||0, ankH = i=>Math.max(B.ANK, .03+Math.sin(tp(i))*B.FOOT);
+  const py = Math.max(drop(leg(0))+ankH(0), drop(leg(1))+ankH(1)) + lift;
+  const J = { pelvis:[0,py,0] };
+  [0,1].forEach(i=>{
+    const s=i?1:-1, L=leg(i), cg=Math.cos(L.g), sg=Math.sin(L.g), sp=L.a-L.b;
+    const hip  = [s*B.HIP, py, 0];
+    const knee = add3(hip,  [s*sg*B.LT, -Math.cos(L.a)*cg*B.LT, Math.sin(L.a)*cg*B.LT]);
+    const ank  = add3(knee, [s*sg*B.LS, -Math.cos(sp)*cg*B.LS,  Math.sin(sp)*cg*B.LS]);
+    J['hip'+i]=hip; J['knee'+i]=knee; J['ank'+i]=ank; J['toe'+i]=add3(ank, [s*.02, -.03-Math.sin(tp(i))*B.FOOT, Math.cos(tp(i))*B.FOOT]);
+  });
+  let up = [Math.sin(roll), Math.cos(lean)*Math.cos(roll), Math.sin(lean)];
+  up = sc3(up, 1/Math.hypot(...up));
+  const side = [Math.cos(roll), -Math.sin(roll), 0];
+  J.base = add3(J.pelvis, sc3(up,.12));
+  J.neck = add3(J.pelvis, sc3(up,B.TOR));
+  const nf=q[18]||0, fwd=[0, -Math.sin(lean), Math.cos(lean)];
+  J.head = add3(J.neck, sc3(add3(sc3(up, Math.cos(nf)), sc3(fwd, Math.sin(nf))), B.NECK));
+  [0,1].forEach(i=>{
+    const s=i?1:-1, A=arm(i), cb=Math.cos(A.b), sb=Math.sin(A.b), fp=A.a+A.e;
+    const sh = add3(add3(J.neck, sc3(up,-.06)), sc3(side, s*B.SHW));
+    const el = add3(sh, [s*sb*B.LU, -Math.cos(A.a)*cb*B.LU, Math.sin(A.a)*cb*B.LU]);
+    J['sh'+i]=sh; J['el'+i]=el; J['hand'+i]=add3(el, [s*sb*.5*B.LF, -Math.cos(fp)*cb*B.LF, Math.sin(fp)*cb*B.LF]);
+  });
+  return J;
+}
+function worldOf(f, b){
+  const s=Math.sin(f.yaw), c=Math.cos(f.yaw);
+  return [f.x + c*b[0] + s*b[2], b[1], f.z - s*b[0] + c*b[2]];
+}
+// World ground point → body frame of someone standing at p turned by yaw: [x, z]
+function bodyOf(p, yaw, w){
+  const s=Math.sin(yaw), c=Math.cos(yaw), dx=w[0]-p[0], dz=w[1]-p[1];
+  return [c*dx - s*dz, s*dx + c*dz];
+}
+
+// Smooth curve through keyed values (Hermite; flat at holds and turning points, so planted feet don't drift).
+// keys: [time, v1, v2, …]
+function spline(keys, u){
+  const n=keys.length;
+  if(u<=keys[0][0]) return keys[0].slice(1);
+  if(u>=keys[n-1][0]) return keys[n-1].slice(1);
+  let i=0; while(u>keys[i+1][0]) i++;
+  const k0=keys[i], k1=keys[i+1], d=k1[0]-k0[0], s=(u-k0[0])/d;
+  const tan=(j,c)=>{
+    if(j===0 || j===n-1) return 0;
+    const a=keys[j-1][c], v=keys[j][c], b=keys[j+1][c];
+    return (v-a)*(b-v)<=0 ? 0 : (b-a)/(keys[j+1][0]-keys[j-1][0]);
+  };
+  const h00=2*s*s*s-3*s*s+1, h10=s*s*s-2*s*s+s, h01=-2*s*s*s+3*s*s, h11=s*s*s-s*s;
+  const out=[];
+  for(let c=1;c<k0.length;c++) out.push(h00*k0[c] + h10*d*tan(i,c) + h01*k1[c] + h11*d*tan(i+1,c));
+  return out;
+}
+
+// ── Legs from foot targets: feet = [[x, h, z] left, [x, h, z] right] in the body frame,
+//    h = how far the ankle is lifted off the ground. Hips held at height H. ──
+const LEGR = B.LT+B.LS;
+function legsQ(q, H, feet){
+  let lo=9;
+  feet.forEach((ft,i)=>{
+    const s=i?1:-1, h=Math.max(0, ft[1]), xo=s*ft[0]-B.HIP, yd=H-B.ANK-h;
+    const g=Math.asin(clamp(xo/LEGR, -.35, .6)), cg=Math.cos(g);
+    const [a,b]=legIK(ft[2]/cg, yd/cg);
+    q[3+i*3]=a; q[4+i*3]=b; q[5+i*3]=g;
+    q[15+i]=Math.min(.8, 4*h);          // toes point down as the foot comes off the ground
+    lo=Math.min(lo, h);
+  });
+  q[0]=lo;                               // both feet off the ground (running): the hips stay up
+  return q;
+}
+
+// ── Natural gait ─────────────────────────────────────────────────────
+// Each foot is on the ground for a fraction D of the stride and travels back under the body at the
+// body's own speed, so planted feet never slide; then it swings through on a low arc. The same cycle
+// covers running, backpedalling, side-shuffling and every diagonal in between, relative to where the
+// player faces. Hips dip at mid-stance and sway over the standing leg, arms counter-swing to the legs
+// running forwards and sit out wide shuffling. Stopped, it settles into the ready stance with a
+// small, per-player weight shift so nobody stands frozen or moves in unison.
+const STY = {
+  att: { H:.9,  W:.11, lean:.14, arm:[.2,.22,.65] },    // on the ball side: tall, light on the feet
+  def: { H:.85, W:.15, lean:.26, arm:[.35,.45,.95] },   // defenders: lower, arms out, ready to press
+  gk:  { H:.84, W:.17, lean:.24, arm:[.45,.55,1.0] }    // keepers: set position, hands ready
+};
+const styOf = f=>STY[f.role] || STY.att;
+function gaitQ(f, lx, lz, sp, dt, t){
+  const st=styOf(f), mov=sstep(.08,.6,sp), run=sstep(.8,3.5,sp);
+  const fc=(1.7+.3*Math.min(sp,4))*f.cad;           // strides per second (quick, short steps)
+  f.gait += fc*dt*mov;
+  const D=mix(.62,.4,run), zf=Math.min(mix(.3,.46,sstep(4,6.5,sp)), sp/fc*D/2);   // longer strides when sprinting
+  const lat=Math.abs(lx)*mov, fwd=Math.max(0,lz)*mov, back=Math.max(0,-lz)*mov;
+  const hmax=(.05+.1*run)*mov, on=[];
+  const feet=[0,1].map(i=>{
+    const s=i?1:-1, p=frac(f.gait+(i?.5:0));
+    let o, h=0;
+    if(p<D) o=zf*(1-2*p/D);                                   // on the ground, moving back under the body
+    else {                                                    // swing through: leaves and lands at ground speed (no jerk)
+      const u=(p-D)/(1-D), m=-2*zf/D*(1-D), u2=u*u, u3=u2*u;
+      o=(2*u3-3*u2+1)*-zf + (u3-2*u2+u)*m + (-2*u3+3*u2)*zf + (u3-u2)*m;
+      h=hmax*Math.sin(PI*Math.pow(u,.75));
+    }
+    on.push(zf>.01 ? o/zf : 0);
+    return [s*mix(st.W, .2, lat) + lx*o, h, .02 + lz*o];
+  });
+  const mid=frac(f.gait)-D/2, rest=1-mov;
+  const bob=.022*run*(.5+.5*Math.cos(2*TAU*mid));
+  const H=st.H - .05*lat - .03*fwd*run - bob;
+  const amp=(.55*fwd*run + .15*back*run)*(f.armK==null ? 1 : f.armK);   // f.armK: calmer arms (dribbling)
+  const arm=i=>[ mix(st.arm[0], .3, lat) - amp*on[i], mix(st.arm[1], .55, lat), mix(st.arm[2], 1.3, fwd*run) ];
+  const lean=st.lean + .07*fwd*run - .1*back + .06*lat + .015*Math.sin(t*1.3+f.ph)*rest;
+  const roll=.03*mov*Math.sin(TAU*mid) + .02*Math.sin(t*.9+f.ph)*rest;
+  return legsQ(Q(0, lean, roll, [0,0,0],[0,0,0], arm(0), arm(1), 0, 0, f.neck), H, feet);
+}
+
+// ── Passing: plant the standing foot beside the ball, swing back, strike through, follow through ──
+// Times in seconds from the start of the kick. The ball leaves the foot exactly at STRIKE.
+const BR = .115;
+const K = { STRIKE:.52, END:1.16, KB:[.13, .32] };       // KB: ball spot (body frame x, z) for a right-foot pass
+const KICK_R = [[0,.11,0,.02],[.18,.11,0,0],[.38,.15,.24,-.28],[.52,.13,.09,.11],[.7,.1,.2,.52],[1.0,.11,0,.04]];
+const KICK_L = [[0,-.11,0,.02],[.09,-.13,.06,.08],[.18,-.14,0,.15],[.72,-.14,0,.15],[1.08,-.12,.05,.08],[1.16,-.11,0,.02]];
+// foot: 1 = right-foot pass, 0 = left-foot pass (mirror image: ball spot, legs, arms and roll)
+// pin (on-the-move strike): the standing foot's spot in the body frame [x, z], held on the grass
+function kickQ(u, foot, pin){
+  const sw=sstep(.15,.5,u)*(1-sstep(.75,1.05,u));          // through the swing
+  const lean=.16+.1*Math.sin(PI*clamp((u-.3)/.5,0,1));      // body over the ball as it's struck
+  const neck=u<.62 ? .5 : mix(.5,.2,sstep(.62,.9,u));       // eyes on the ball, then up to follow it
+  const m=foot===0 ? -1 : 1, aOpp=[.3+.2*sw,.3+.45*sw,.6], aKick=[.2-.4*sw,.25+.1*sw,.6];
+  const q=Q(0, lean, -.04*sw*m, [0,0,0],[0,0,0], m>0 ? aOpp : aKick, m>0 ? aKick : aOpp, 0, 0, neck);
+  let L=spline(KICK_L,u); const R=spline(KICK_R,u);
+  if(pin){ const wp=sstep(.1,.2,u)*(1-sstep(.7,.95,u)), tg=[m*clamp(pin[0],-.4,.4), 0, clamp(pin[1],-.5,.55)]; L=L.map((v,j)=>mix(v, tg[j], wp)); }
+  return legsQ(q, .86, m>0 ? [L, R] : [[-R[0],R[1],R[2]], [-L[0],L[1],L[2]]]);
+}
+// ── Keeper's save attempt (DRILL.gk): drops, lunges with the near leg towards the shot, body tilting,
+//    arms reaching — then comes back up. u = seconds from the strike, s = +1 diving to the body's right.
+// The body stretches long (arms beyond the head) and the whole figure tips over sideways about the
+// near foot (DIVE_ROLL, applied when drawing), so it goes out flat towards the ball, lands, then gets up.
+const DIVE = { load:.1, out:.2, flat:.45, up:1.35, stand:2.0 };
+function diveQ(u, s){
+  const D=DIVE, crouch=sstep(0,D.load,u)*(1-sstep(D.load,D.out,u)), e=sstep(D.load,D.out+.1,u)*(1-sstep(D.up,D.stand,u));
+  const lead=[s*mix(.17,.3,e), 0, .02], trail=[-s*mix(.17,.05,e), mix(0,.12,e), .02];
+  const reach=[mix(.45,2.95,e), mix(.55,.2,e), mix(1.0,.08,e)];        // arms stretched beyond the head
+  const q=Q(0, mix(.24+.15*crouch,.0,e), 0, [0,0,0],[0,0,0], reach, reach, 0, 0, mix(.3,.1,e));
+  return legsQ(q, mix(.84-.12*crouch, .92, e), s>0 ? [trail, lead] : [lead, trail]);
+}
+const diveRoll = u=>sstep(DIVE.out-.06, DIVE.flat, u)*(1-sstep(DIVE.up, DIVE.stand, u))*1.42;   // 0 → ~80° → 0
+// Joints for drawing: the skeleton, tipped over sideways about the near ankle while diving (f.dive)
+function fkF(f){
+  const J=fk(f.q), dv=f.dive; if(!dv || dv.a<1e-3) return J;
+  const pv=J['ank'+(dv.s>0 ? 1 : 0)], c=Math.cos(dv.a), sn=Math.sin(dv.a)*dv.s, out={};
+  for(const k in J){ const p=J[k], x=p[0]-pv[0], y=p[1]-pv[1];
+    out[k]=[pv[0] + x*c + y*sn, Math.max(.04, pv[1] - x*sn + y*c), p[2]]; }
+  return out;
+}
+// ── Receiving: body already open, the back foot (away from the passer) goes out to meet the ball
+//    and cushions it back to rest in front of the body. v = seconds from the ball's arrival. ──
+const CUSH = .3;
+function recvQ(P, v){
+  const i=P.foot, s=i?1:-1, W0=STY.att.W;
+  const ft=spline([[-.5, s*W0,0,.02],[-.1,...P.m2B],[0,...P.mB],[CUSH,...P.rB],[.62, s*W0,0,.02]], v);
+  const other=[-s*W0, 0, .02];
+  const neck=v<.45 ? .52 : mix(.52,.25,sstep(.45,.7,v));
+  const q=Q(0, .2, -s*.03, [0,0,0],[0,0,0], [.3,.4,.7],[.3,.4,.7], 0, 0, neck);
+  return legsQ(q, .87, i ? [other, ft] : [ft, other]);
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  PASS PLANNER                                                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const centreOf = idx=>(DRILL.centre ? DRILL.centre(idx) : [0,0]);
+const isDef = i=>DRILL.roles[i]==='def';
+
+// ── Where the ball sits once it's been received: already set for the NEXT pass. ──
+// The receiver's body is opened towards the next target and the first touch puts the ball on the
+// kicking spot (right or left foot, whichever needs the least turning), so the pass follows straight
+// from the touch — no steps round the ball. The body only turns back towards the passer as far as
+// needed to watch the ball in (VIS); that small angle is a pivot on the standing foot at the pass.
+// Held teaching beats on the same pass keep the same spot.
+// ot = the next pass is played first time (DRILL.oneTouch; short, not a split, no pivot needed).
+const REST = .45, OFF = .3, VIS = 1.3, OT_MAX = 7.5;
+const restMemo = {};
+// ph.replay: the same pass again (e.g. a teaching contrast) — it starts from the board before the previous phase
+const pv = idx=>PH[idx] && PH[idx].replay ? idx-2 : idx-1;
+function restSpot(idx){
+  if(restMemo[idx]) return restMemo[idx];
+  const ph=PH[idx], h=ph.passer, me=W(ph.pl[h]);
+  let j=idx; while(j>0 && PH[j-1].passer===h && !PH[j].replay) j--;          // the phase whose pass brought the ball here
+  let k=idx+1; while(PH[k] && PH[k].passer===h && !(DRILL.setUp && PH[k].shot)) k++;   // DRILL.setUp: a shot counts as the next ball         // the phase of the next pass
+  const inc = j>0 && !PH[j].restart ? (Array.isArray(PH[j].onMove) ? W(PH[j].onMove) : restSpot(pv(j)).p) : null, angTo=w=>Math.atan2(w[0]-me[0], w[1]-me[1]);
+  // ph.closed: received with the body closed — square to the passer, facing back the way the ball came
+  if(ph.closed && inc && j===idx){ const u=unit([inc[0]-me[0], inc[1]-me[1]]), y=angTo(inc);
+    return restMemo[idx] = { p:[me[0]+u[0]*REST, me[1]+u[1]*REST], at:me, yawH:y, yawK:y, foot:1, ot:false }; }
+  const C=centreOf(idx), nx=PH[k];
+  if(!nx || nx.restart){                                     // no pass to come: rest it in front, open to the grid
+    let u=unit([C[0]-me[0], C[1]-me[1]]);
+    if(inc){ const toP=unit([inc[0]-me[0], inc[1]-me[1]]); u=unit([u[0]+toP[0], u[1]+toP[1]]); }
+    return restMemo[idx] = { p:[me[0]+u[0]*REST, me[1]+u[1]*REST], at:me, yawH:Math.atan2(u[0],u[1]), yawK:null, foot:1, ot:false };
+  }
+  const tgt = nx.shot && nx.passer===h ? W(nx.shot) : W(nx.pl[nx.passer]), pass=angTo(tgt), inY = inc ? angTo(inc) : null;
+  // right foot: body a little right of the line (inside of the foot plays it across); left: mirror
+  const o=[1,0].map(foot=>{
+    const yawK=pass+(foot ? OFF : -OFF), off=Math.abs(wrap((inY==null ? angTo(C) : inY)-yawK));
+    return { foot, yawK, turn: inY==null ? 0 : Math.max(0, off-VIS), off };
+  }).sort((a,b)=>(a.turn-b.turn) || (a.off-b.off))[0];
+  // nx.firstTime: struck first time whatever the angle (e.g. a finish); DRILL.setUp + ph.dribble: the last
+  // touch of the dribble sets the ball for the next pass, so the body is already open to it
+  const ft = !!nx.firstTime && !!inc && j===idx && k===idx+1;
+  // ph.open: finishes the receive chest-on to the field (facing the centre) — a teaching contrast to ph.closed
+  const yawH = ph.open ? angTo(C) : o.turn>0 && !ft && !(DRILL.setUp && ph.dribble) ? o.yawK + Math.sign(wrap(inY-o.yawK))*o.turn : o.yawK;
+  const kb=[o.foot ? K.KB[0] : -K.KB[0], K.KB[1]], s=Math.sin(o.yawK), c=Math.cos(o.yawK);
+  // DRILL.otWaitRuns: first time only if the next receiver can finish their run before the ball gets there
+  const r2=nx.passer, run2=dist(W(PH[pv(idx)] ? PH[pv(idx)].pl[r2] : ph.pl[r2]), W(ph.pl[r2])) + dist(W(ph.pl[r2]), tgt);
+  const bt=d=>Math.max(.5, d/ballSpeed(d)), avail = inc ? bt(dist(inc,me)) + OT_K + bt(dist(me,tgt)) - .35 : 0;
+  const ot = ft || !!DRILL.oneTouch && !!inc && j===idx && k===idx+1 && o.turn===0 && !nx.splitP && dist(me,tgt)<=OT_MAX && (!DRILL.otWaitRuns || run2<.02 || moveDur(run2, DRILL.roles[r2], paceOf(ph, r2))<=avail);
+  return restMemo[idx] = { p:[me[0]+c*kb[0]+s*kb[1], me[1]-s*kb[0]+c*kb[1]], at:me, yawH, yawK:o.yawK, foot:o.foot, ot };
+}
+
+// ── One pass, timed from the start of the phase ──
+// The passer is already stood at the ball: a quick pivot onto the kicking line if needed (tSet),
+// kick (ball leaves at tKick), the ball rolls to the receiver (tArr) and the first touch sets it (tRest).
+// A first-time pass skips the pivot: the strike lands as the ball arrives.
+const OT_K = .12 + K.STRIKE;
+// noWait: the receiver-is-set check is done by planPhase instead (a flowing drill knows where runs end)
+// ov (a pass on the move): { A, B, yawK, foot, tSet } — the strike spot and timing worked out from the run
+function planPass(idx, noWait, ov){
+  const prev=PH[pv(idx)], ph=PH[idx], p=prev.passer, r=ph.passer;
+  const S0=restSpot(pv(idx)), R=restSpot(idx);
+  const A = ov ? ov.A : S0.p, rest=R.p, dirIn=unit([rest[0]-A[0], rest[1]-A[1]]);
+  const meet = R.ot ? rest : [rest[0]-dirIn[0]*.12, rest[1]-dirIn[1]*.12];
+  const yawK = ov ? ov.yawK : S0.yawK, kickPos = ov ? ov.B : S0.at;
+  let tSet = ov ? ov.tSet : S0.ot ? OT_K-K.STRIKE : DRILL.quick ? .05 + .22*Math.abs(wrap(S0.yawK-S0.yawH)) : .15 + .35*Math.abs(wrap(S0.yawK-S0.yawH));   // DRILL.quick: less time on the ball
+  const rFrom=W(prev.pl[r]), rTo=W(ph.pl[r]), durR=moveDur(dist(rFrom,rTo), DRILL.roles[r]);
+  const ballDur=Math.max(.5, dist(A,meet)/ballSpeed(dist(A,meet)));
+  let tKick=tSet+(ov ? K.STRIKE/ov.ks : K.STRIKE), tArr=tKick+ballDur;
+  if(!noWait && !ov && !S0.ot && !ph.intercept && tArr<durR+.35){ const d=durR+.35-tArr; tSet+=d; tKick+=d; tArr+=d; }   // receiver is set before the ball arrives
+  const yawR=R.yawH;
+  // Receive with the back foot: the one away from the passer
+  const inB=bodyOf(rTo, yawR, A), foot=inB[0]>0 ? 0 : 1, sf=foot?1:-1;
+  const bB=w=>bodyOf(rTo, yawR, w);
+  const mB=bB(meet), rB=bB(rest), m2=bB([meet[0]-dirIn[0]*.08, meet[1]-dirIn[1]*.08]);
+  return { p, r, A, meet, rest, yawK, yawR, kickPos, tSet, tKick, tArr, tRest: R.ot ? tArr : tArr+CUSH, foot,
+           kfoot: ov ? ov.foot : S0.foot, ot:R.ot, inc:null, onMove:!!ov,
+           mB:[mB[0]+sf*.16, .04, mB[1]-.07], rB:[rB[0]+sf*.16, .02, rB[1]-.07], m2B:[m2[0]+sf*.16, .06, m2[1]-.07] };   // inside of the foot against the ball
+}
+// ph.shot = [x, z]: the holder strikes the ball (as it lies) to that point, e.g. into a mini goal — no
+// receiver. A short adjusting step to the ball first, then the same strike as a pass, struck firmly.
+// DRILL.gk: the keeper's index, or several (a goal at each end) — the one nearest the shot goes for it
+// DRILL.gkLate (opt-in): on a long shot the keeper reads it and goes late, landing as the ball arrives
+// (default: the dive starts with the strike)
+const diveT = P=>DRILL.gkLate ? Math.max(P.tKick, P.tArr-.5) : P.tKick;
+function keeperFor(tgt, idx){
+  const g=DRILL.gk; if(g==null) return -1; if(!Array.isArray(g)) return g;
+  let b=-1, bd=1e9; g.forEach(k=>{ const d=dist(W(PH[idx].pl[k]), tgt); if(d<bd){ bd=d; b=k; } }); return b;
+}
+function planShot(idx, ov){
+  const ph=PH[idx], p=ph.passer, tgt=W(ph.shot), S0=restSpot(pv(idx)), set=S0.ot || (DRILL.setUp && PH[pv(idx)].dribble);
+  if(ov){                                                                     // ph.onMove on a shot: struck in stride
+    const tKick=ov.tSet+K.STRIKE/ov.ks, tArr=tKick+Math.max(.25, dist(ov.A,tgt)/12), u=unit([tgt[0]-ov.A[0], tgt[1]-ov.A[1]]);
+    return { p, r:-1, A:ov.A, meet:tgt, rest:[tgt[0]+u[0]*.45, tgt[1]+u[1]*.45], yawK:ov.yawK, yawR:ov.yawK, kickPos:ov.B,
+             tSet:ov.tSet, tKick, tArr, tRest:tArr+CUSH, foot:ov.foot, kfoot:ov.foot, ot:false, inc:null, shot:true, onMove:true,
+             mB:[0,0,0], rB:[0,0,0], m2B:[0,0,0], gk:keeperFor(tgt, idx) };
+  }
+  // set: the ball is already where the strike wants it (a first-time finish, or a dribble's last touch)
+  const A = set ? S0.p : SC.ball.slice(), yaw=Math.atan2(tgt[0]-A[0], tgt[1]-A[1]);
+  const foot = set ? S0.foot : 1, yawK = set ? S0.yawK : yaw+OFF, s=Math.sin(yawK), c=Math.cos(yawK);
+  const kb=[foot ? K.KB[0] : -K.KB[0], K.KB[1]], kickPos = set ? S0.at : [A[0]-(c*kb[0]+s*kb[1]), A[1]-(-s*kb[0]+c*kb[1])];
+  const tSet = S0.ot ? OT_K-K.STRIKE : set ? .15 : .3, tKick=tSet+K.STRIKE, tArr=tKick+Math.max(.25, dist(A,tgt)/12);
+  const u=unit([tgt[0]-A[0], tgt[1]-A[1]]), rest=[tgt[0]+u[0]*.45, tgt[1]+u[1]*.45];
+  return { p, r:-1, A, meet:tgt, rest, yawK, yawR:yaw, kickPos, tSet, tKick, tArr, tRest:tArr+CUSH, foot, kfoot:foot,
+           ot:false, inc:null, shot:true, mB:[0,0,0], rB:[0,0,0], m2B:[0,0,0], gk:keeperFor(tgt, idx) };
+}
+// ph.onMove (a pass phase whose passer carries the ball first): [x, y] board point where it's struck,
+// or a fraction of the run (default .7). The passer runs with the ball from where they are, eases to
+// ~1 m/s for the plant, strikes in stride (a quicker swing, OM_KS) and runs on to ph.pl. The standing
+// foot is pinned to the grass through the strike. Which foot: whichever keeps the body nearest the run.
+const OM_KS = 1.6;
+function onMoveOv(idx, carry){
+  const prev=PH[pv(idx)], ph=PH[idx], h=prev.passer, role=DRILL.roles[h], pc=paceOf(ph, h);
+  // still running from the phase before (Auto moved on mid-run): carry straight on at that speed, no stop
+  const mv = carry ? carry.moves[h] : [], st = carry ? carry.starts[h] : W(prev.pl[h]), c=W(ph.pl[h]);
+  const Kp = Array.isArray(ph.onMove) ? W(ph.onMove) : lerp2(st, c, typeof ph.onMove==='number' ? ph.onMove : .7);
+  const vNow = mv.length ? speedToward(st, mv, Kp) : 0, flyIn = vNow>.5;
+  const a = flyIn || !mv.length ? st : mv[mv.length-1].to;
+  const d1=dist(a,Kp), d2=dist(Kp,c), v0 = flyIn ? Math.min(vNow, 2.4*d1/Math.max(.6, moveDur(d1, role, pc))) : 0;
+  const dur1=Math.max(.6, moveDur(d1, role, pc) - .3*Math.min(1, v0/2)), vs=clamp(.45*d1/dur1, 1.0, 1.4);
+  const dur2 = d2>.05 ? Math.max(.7, moveDur(d2, role, pc)+.2) : .5;
+  const tgt=ph.shot ? W(ph.shot) : restSpot(idx).p, pass=Math.atan2(tgt[0]-Kp[0], tgt[1]-Kp[1]), run=Math.atan2(Kp[0]-a[0], Kp[1]-a[1]);
+  const foot = Math.abs(wrap(pass+OFF-run)) <= Math.abs(wrap(pass-OFF-run)) ? 1 : 0, yawK=pass+(foot ? OFF : -OFF);
+  const s=Math.sin(yawK), co=Math.cos(yawK), toW=b=>[Kp[0]+co*b[0]+s*b[1], Kp[1]-s*b[0]+co*b[1]];
+  const kb=[foot ? K.KB[0] : -K.KB[0], K.KB[1]];
+  return { A:toW(kb), B:Kp, yawK, foot, ks:OM_KS, tSet:dur1-K.STRIKE/OM_KS, plantW:toW([foot ? -.14 : .14, .15]),
+           om:{ K:Kp, c, a, dur1, dur2, vs, v0, flyIn } };
+}
+// a run that starts already moving at v0: a little quicker than from a standstill (kept monotonic)
+const chainDur = (d, i, ph, v0)=>Math.min(2.6*d/v0, Math.max(.6, moveDur(d, DRILL.roles[i], paceOf(ph, i)) - .3*Math.min(1, v0/2)));
+// how fast a player on carried moves is travelling towards w right now (m/s, 0 if away)
+function speedToward(st, mv, w){
+  const p=posAt(st, mv, .03), u=unit([w[0]-st[0], w[1]-st[1]]);
+  return Math.max(0, ((p[0]-st[0])*u[0] + (p[1]-st[1])*u[1])/.03);
+}
+// a dribble cut short by Auto: the ball carries on to the touch it was heading for (prev-phase time d)
+function dribLead(D, d){
+  if(!D) return null;
+  const e=D.T.find(x=>x.t>d); return e ? { t:e.t-d, p:e.p.slice() } : null;
+}
+// the ball along an on-the-move run: a touch every ~1.5 m, the last one sets it on the strike spot A at tK
+function omTouches(i, st, mv, t0, tK, b0, A, lead){
+  const pos=t=>posAt(st, mv, t);
+  const fwd=t=>{ const a=pos(Math.max(t0, t-.06)), b=pos(t+.06), d=dist(a,b); return d>1e-3 ? [(b[0]-a[0])/d, (b[1]-a[1])/d] : null; };
+  // lead: still rolling to the next touch — keep its timing, but the touch is where the player now is
+  const lp = lead && lead.t<tK-.3 ? pos(lead.t) : null, lu = lp && (fwd(lead.t)||[0,1]);
+  // roll (DRILL.rollOn): still rolling and the strike comes before the next touch — it rolls straight on to the strike
+  const roll = !lp && lead && DRILL.rollOn;
+  const T = lp ? [{ t:0, p:b0 }, { t:lead.t, p:[lp[0]+lu[0]*.32, lp[1]+lu[1]*.32] }] : roll ? [{ t:0, p:b0 }] : [{ t:t0, p:b0 }, { t:t0+.18, p:b0 }];
+  const tS = roll ? tK : T[1].t;
+  let acc=0, q=pos(tS), lastU=fwd(tS+.12)||[0,1];
+  for(let t=tS+.02; t<tK-.45; t+=.02){
+    const p=pos(t); acc+=dist(p,q); q=p;
+    if(acc>=1.5){ const u=fwd(t)||lastU; lastU=u; T.push({ t, p:[p[0]+u[0]*.32, p[1]+u[1]*.32] }); acc=0; }
+  }
+  T.push({ t:tK, p:A.slice() });
+  return { i, T, end:A.slice(), yaw:null };
+}
+// inc: a first-time pass started while the previous ball is still rolling in — until the strike the
+// ball carries on along that pass, arriving exactly as it's struck.
+function ballAt(P, tt){
+  if(tt<P.tKick) return P.drib ? dribAt(P.drib, tt) : P.inc ?ballAt(P.inc.P, tt+P.inc.d) : P.A;
+  if(tt<P.tArr){ const x=(tt-P.tKick)/(P.tArr-P.tKick); return lerp2(P.A, P.meet, P.ot ? 1-Math.pow(1-x,1.5) : x*(1.3-.3*x)); }   // slows as it rolls
+  if(tt<P.tRest){ const x=(tt-P.tArr)/CUSH; return lerp2(P.meet, P.rest, 1-(1-x)*(1-x)); }         // cushioned
+  return P.rest;
+}
+
+// ── Movement: steady pace with ~0.7 s to get going and to pull up ──
+const MOVE_V = { att:3.0, def:3.3, gk:2.6 };
+// Runs beyond 9 m open up into a sprint (up to +2.5 m/s); passes beyond 14 m are driven harder.
+// DRILL.pace (default 1) scales everyday movement, e.g. 1.25 for sharp slides along a line.
+const paceOf = (ph, i)=>ph.pace && typeof ph.pace==='object' ? ph.pace[i] : ph.pace;   // ph.pace: a number, or { playerIndex: pace }
+const moveDur = (d, role, pace)=>Math.max(.7, d/Math.min(5.2, (MOVE_V[role]||3.0)*(pace||DRILL.pace||1) + Math.min(2.5, Math.max(0, d-9)*.18)) + .35);   // ≤ 5.2 m/s: the stride keeps up
+const ballSpeed = d=>(8.5 + Math.min(6, Math.max(0, d-14)*.4))*(DRILL.ballK||1);   // DRILL.ballK: a quicker (or slower) ball
+function profile(k, dur){
+  const p=Math.min(.45, .7/dur), v=1/(1-p);
+  return k<p ? v*k*k/(2*p) : k<1-p ? v*(k-p/2) : 1 - v*(1-k)*(1-k)/(2*p);
+}
+const bez2 = (a,c,b,k)=>[(1-k)*(1-k)*a[0]+2*k*(1-k)*c[0]+k*k*b[0], (1-k)*(1-k)*a[1]+2*k*(1-k)*c[1]+k*k*b[1]];
+// ph.via = { playerIndex:[x,y] board px }: the run passes through that point (e.g. outside a corner)
+// arc-length table, so a curved run keeps an even pace along its length
+const bezLut = (a,c,b)=>{ const L=[0]; let q=a; for(let s=1;s<=32;s++){ const r=bez2(a,c,b,s/32); L.push(L[s-1]+dist(q,r)); q=r; } return L; };
+const bezAt = (m,k)=>{ const L=m.lut||(m.lut=bezLut(m.from,m.c,m.to)), want=k*L[32];
+  let s=1; while(s<32 && L[s]<want) s++;
+  const t=(s-1+(L[s]>L[s-1] ? (want-L[s-1])/(L[s]-L[s-1]) : 0))/32; return bez2(m.from,m.c,m.to,clamp(t,0,1)); };
+const curve = (a, b, vb)=>{ if(!vb) return null; const v=W(vb), c=[2*v[0]-(a[0]+b[0])/2, 2*v[1]-(a[1]+b[1])/2]; return { c, len:bezLut(a,c,b)[32] }; };
+function posAt(start, moves, tt){
+  let p=start;
+  for(const m of moves){
+    if(tt<m.t0) break;
+    if(m.hv){                                         // m.hv: [v0, v1] m/s — a run that starts or ends at speed
+      const k=clamp((tt-m.t0)/m.dur, 0, 1), D=dist(m.from, m.to)||1, T=m.dur, k2=k*k, k3=k2*k;
+      p = lerp2(m.from, m.to, (D*(3*k2-2*k3) + T*m.hv[0]*(k3-2*k2+k) + T*m.hv[1]*(k3-k2))/D); continue;
+    }
+    const k=profile(clamp((tt-m.t0)/m.dur, 0, 1), m.dur);
+    p = m.c ? bezAt(m, k) : lerp2(m.from, m.to, k);   // m.c: curved run (round the outside of a box)
+  }
+  return p;
+}
+const CLR = .6;   // nobody's body within 0.6 m of the rolling ball (except passer at the kick and receiver)
+
+// Plan a phase: every player's moves (start delays picked so nobody walks through the pass) and the pass.
+// carry (optional): the previous phase still playing out — { d: seconds into it, P: its pass,
+// starts: where everyone is now, moves: their unfinished moves re-timed to this phase }. Players
+// finish those first, so the next pass can start without anyone stopping or jumping.
+function planPhase(idx, carry){
+  const prev=PH[pv(idx)], ph=PH[idx], from=prev.pl.map(W), to=ph.pl.map(W);
+  // ph.restart: the ball changes groups (e.g. the other grid starts) — no pass between them
+  const OV = ph.onMove && (ph.passer!==prev.passer || ph.shot) && !ph.restart ? onMoveOv(idx, carry) : null;   // ph.onMove: passed (or shot) on the run
+  const P = OV ? (ph.shot ? planShot(idx, OV) : planPass(idx, true, OV)) : ph.passer!==prev.passer && !ph.restart ? planPass(idx, !!carry || !!ph.intercept) :ph.shot ? planShot(idx) : null;
+  const starts = carry ? carry.starts : from;
+  const moves = from.map((_,i)=>carry ? carry.moves[i].slice() : []);
+  const busy = moves.map(mv=>mv.reduce((e,m)=>Math.max(e, m.t0+m.dur), 0));
+  const lastTo = i=>moves[i].length ? moves[i][moves[i].length-1].to : carry ? carry.starts[i] : from[i];   // where a carried run ends
+  // DRILL.chain: a run still going (Auto moved on mid-run) carries straight on into this one — no stop
+  const chainV = from.map((_,i)=>{
+    if(!DRILL.chain || !carry || (P && i===P.p) || moves[i].length!==1 || moves[i][0].t0>=0 || moves[i][0].c || (ph.via && ph.via[i]) || dist(starts[i], to[i])<=.3) return 0;
+    const vt=speedToward(starts[i], moves[i], to[i]); if(vt<=.5) return 0;
+    moves[i]=[]; busy[i]=0; return vt;
+  });
+  const shiftP = d=>{ P.tSet+=d; P.tKick+=d; P.tArr+=d; P.tRest+=d; if(P.drib) P.drib.T.forEach(e=>e.t+=d); };
+  if(P && !OV && carry && carry.P && restSpot(pv(idx)).ot){
+    const arr=carry.P.tArr-carry.d;                                           // previous ball arrives at the striker
+    if(arr>OT_K-.2){ P.inc={ P:carry.P, d:carry.d }; shiftP(arr-P.tKick); }
+  }
+  // ph.intercept: the receiver is a defender reading the pass — timed to step into the lane as the ball arrives
+  if(P && ph.intercept){ const r=P.r, need=busy[r] + moveDur(dist(lastTo(r), to[r]), DRILL.roles[r], paceOf(ph, r)) - P.tArr; if(need>0) shiftP(need); }
+  // (ph.inStride passes don't wait: they're aimed into the run while it is still going)
+  else if(P && P.r>=0 && !P.inc && !(ph.inStride && OV) && (carry ? (!restSpot(pv(idx)).ot || busy[P.r]>0) : busy[P.r]>0)){   // the receiver is set before the ball arrives
+    const r=P.r, dR=dist(lastTo(r), to[r]);
+    const need=busy[r] + (dR>.02 ? (chainV[r] ? chainDur(dR, r, ph, chainV[r]) : moveDur(dR, DRILL.roles[r])) : 0) + .35 - P.tArr;
+    if(need>0) shiftP(need);
+  }
+  // the on-the-move pass: carry the ball along the run, strike it in stride, keep running after it
+  if(OV){
+    const h=P.p, O=OV.om;
+    if(O.flyIn){ moves[h]=[]; busy[h]=0; }                                   // (takes over the run in progress)
+    if(O.flyIn){                                                              // the run starts now: stretch it if the strike must wait
+      if(P.tKick>O.dur1) O.dur1=Math.min(P.tKick, 2.6*dist(O.a,O.K)/Math.max(O.v0,.1));
+      shiftP(O.dur1-P.tKick);
+    } else if(busy[h]>P.tKick-O.dur1) shiftP(busy[h]-(P.tKick-O.dur1));
+    const t0=P.tKick-O.dur1;
+    moves[h].push({ from:O.a, to:O.K, t0, dur:O.dur1, hv:[O.v0, O.vs], om:true },
+                  { from:O.K, to:O.c, t0:P.tKick, dur:O.dur2, hv:[O.vs, 0], om:true });
+    busy[h]=P.tKick+O.dur2;
+    P.drib=omTouches(h, starts[h], moves[h], t0, P.tKick, SC.ball.slice(), P.A, O.flyIn && carry ? dribLead(SC.drib, carry.d) : null);
+    P.om=O; P.ks=OV.ks; P.plantW=OV.plantW;
+  }
+  let end=Math.max(0, ...busy);
+  const minClear=(i, mv)=>{
+    if(!P) return 9;
+    let m=9;
+    for(let tt=P.inc ? 0 : P.tKick; tt<=P.tRest+.2; tt+=.025){
+      if(i===P.p && tt<P.tKick+.3) continue;
+      m=Math.min(m, dist(posAt(starts[i], mv, tt), ballAt(P, tt)));
+    }
+    return m;
+  };
+  let nDef=0;
+  from.forEach((_,i)=>{
+    let a=lastTo(i);
+    const b=to[i], def=isDef(i), kD = def ? nDef++ : 0;
+    if(OV && i===P.p) return;                                                 // (on-the-move pass: run planned above)
+    if(P && P.shot && i===P.gk){                                          // keeper: pushes off sideways into the dive as the shot is struck
+      const A=P.A, M=P.meet, k=Math.abs(M[1]-A[1])>.1 ? clamp((a[1]-A[1])/(M[1]-A[1]), 0, 1) : 1, xb=A[0]+(M[0]-A[0])*k;
+      const st=clamp(xb-a[0], -DRILL.gkPush||-.5, DRILL.gkPush||.5);
+      if(Math.abs(st)>.05){ moves[i].push({ from:a, to:[a[0]+st, a[1]], t0:Math.max(busy[i], diveT(P)+DIVE.load), dur:.45 }); end=Math.max(end, diveT(P)+.6); }
+      return;
+    }
+    if(P && i===P.p){                                                         // (already at the ball — no step-up)
+      if(dist(a,P.kickPos)>.02) moves[i].push({ from:a, to:P.kickPos, t0:busy[i], dur:Math.max(.2, P.tSet-busy[i]) });
+      a=P.kickPos;
+    }
+    const v0=chainV[i];
+    const d=dist(a,b);
+    if(d<.02){ end=Math.max(end, moves[i].length && P ? P.tSet : 0); return; }
+    const cv=curve(a, b, ph.via && ph.via[i]);
+    const dur = v0 ? chainDur(d, i, ph, v0)
+                   : moveDur(cv ? cv.len : d, DRILL.roles[i], paceOf(ph, i));                             // ph.pace: a phase of sprints
+    let base=0;
+    if(P){
+      base = i===P.p ? P.tSet+K.END-.1                                        // after the follow-through
+           : i===P.r ? (ph.intercept ? Math.max(0, P.tArr-dur) : 0)           // gets set early (an interceptor: just in time)
+           : def     ? P.tKick-.05+.09*kD                                     // defenders react to the strike
+           :           Math.max(0, P.tKick-.35)+.07*(i%6);                    // move as the ball travels
+    }
+    const go = !!(ph.go && ph.go[i]!=null);                                   // ph.go: { playerIndex: start } — an anticipated run, timed
+    base=Math.max(base, busy[i]);
+    let best=null, bestC=-1;
+    if(go) best=ph.go[i];
+    else if(v0) best=0;
+    else if(P && i!==P.r){
+      const cands=[]; for(let k=0;k<=24;k++) cands.push(base+k*.1);
+      if(i!==P.p) for(let k=1;k<=10;k++) if(base-k*.1>=busy[i]) cands.push(base-k*.1);   // the passer never sets off mid-kick
+      for(const t0 of cands){
+        const mv=[...moves[i], { from:a, to:b, t0, dur, c:cv&&cv.c }], c=minClear(i, mv);
+        if(c>=CLR){ best=t0; break; }
+        if(c>bestC){ bestC=c; best=t0; }
+      }
+    } else best=base;
+    moves[i].push(v0 ? { from:a, to:b, t0:0, dur, hv:[v0, 0] } : { from:a, to:b, t0:best, dur, c:cv&&cv.c, go });
+    end=Math.max(end, best+dur);
+  });
+  // DRILL.anticipate: the next receiver starts moving into their receiving spot as this pass is played,
+  // so the following pass can go straight off the first touch (they are not left waiting for the run)
+  const nx=PH[idx+1];
+  if(DRILL.anticipate && P && nx && nx.passer!==ph.passer){
+    const r2=nx.passer, a=lastTo(r2), b=W(nx.pl[r2]), d=dist(a,b);
+    if(d>.02){
+      const dur=moveDur(d, DRILL.roles[r2]), base=Math.max(moves[r2].reduce((e,m)=>Math.max(e, m.t0+m.dur), 0), P.tKick+.2);
+      let best=base, bestC=-1;
+      for(let k=0;k<=24;k++){
+        const t0=base+k*.1, c=minClear(r2, [...moves[r2], { from:a, to:b, t0, dur }]);
+        if(c>=CLR){ best=t0; break; }
+        if(c>bestC){ bestC=c; best=t0; }
+      }
+      moves[r2].push({ from:a, to:b, t0:best, dur, ant:true });
+    }
+  }
+  // nx.early (flowing drills): players listed on the NEXT phase start that phase's runs during this one,
+  // as this pass is struck (e.g. following a switch over to the other grid)
+  if(carry && nx && nx.early){
+    nx.early.forEach(i=>{
+      const a=lastTo(i), b=W(nx.pl[i]), d=dist(a,b);
+      if(d<.02) return;
+      const cv=curve(a, b, nx.via && nx.via[i]);
+      const dur=moveDur(cv ? cv.len : d, DRILL.roles[i], paceOf(nx, i)), base=Math.max(moves[i].reduce((e,m)=>Math.max(e, m.t0+m.dur), 0), P ? (i===P.p ? P.tKick+.3 : P.tKick+.1) : 0);   // pass and move: the passer is off as the strike finishes
+      let best=base, bestC=-1;
+      for(let k=0;k<=24;k++){
+        const t0=base+k*.1, c=minClear(i, [...moves[i], { from:a, to:b, t0, dur, c:cv&&cv.c }]);
+        if(c>=CLR){ best=t0; break; }
+        if(c>bestC){ bestC=c; best=t0; }
+      }
+      moves[i].push({ from:a, to:b, t0:best, dur, c:cv&&cv.c, early:true });
+    });
+  }
+  // ph.inStride: the pass is played into the receiver's path — aimed at where the run will have taken
+  // them when it gets there, just ahead of the feet, so they meet it at full stride (no stopping, no cushion)
+  if(P && ph.inStride && P.r>=0){
+    const r=P.r, at=t=>posAt(starts[r], moves[r], t);
+    let tA=P.tArr;
+    for(let k=0;k<8;k++){
+      const p=at(tA), q2=at(tA+.06), d=dist(p,q2), u = d>1e-3 ? [(q2[0]-p[0])/d, (q2[1]-p[1])/d] : unit([p[0]-P.A[0], p[1]-P.A[1]]);
+      const m=[p[0]+u[0]*.3, p[1]+u[1]*.3], L=dist(P.A, m);
+      P.meet=m; P.rest=m.slice(); tA=P.tKick+Math.max(.4, L/ballSpeed(L));
+    }
+    P.tArr=tA; P.tRest=tA; P.ot=true; P.inStride=true;
+  }
+  if(P) end=Math.max(end, P.tRest+.4);
+  // ph.lead: seconds of stillness before this phase's play starts (e.g. while the camera moves in)
+  if(ph.lead){
+    if(P) shiftP(ph.lead);
+    moves.forEach((mv,i)=>mv.forEach((m,k)=>{ if((!carry || k>=carry.moves[i].length || m.om) && !m.go) m.t0+=ph.lead; }));
+    end+=ph.lead;
+  }
+  return { from, starts, moves, P, end };
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  DRAWING — every part is a stroked/filled path, depth-sorted     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function segItem(a, b, wM, color, bias){
+  const A=project(cam,a), P=project(cam,b);
+  if(A[2]<.6 || P[2]<.6) return null;
+  const z=(A[2]+P[2])/2;
+  return { z:z+(bias||0), d:`M${A[0].toFixed(1)} ${A[1].toFixed(1)}L${P[0].toFixed(1)} ${P[1].toFixed(1)}`,
+           stroke:color, w:(wM*cam.f/z).toFixed(2) };
+}
+function dotItem(c, rM, color, bias){
+  const C=project(cam,c);
+  if(C[2]<.6) return null;
+  return { z:C[2]+(bias||0), raw:C[2], d:`M${C[0].toFixed(1)} ${C[1].toFixed(1)}h.01`,
+           stroke:color, w:(2*rM*cam.f/C[2]).toFixed(2) };
+}
+function polyD(pts){ return 'M'+pts.map(p=>{ const s=project(cam,p); return s[0].toFixed(1)+' '+s[1].toFixed(1); }).join('L')+'Z'; }
+function lineD(a, b){ const s=project(cam,a), e=project(cam,b); return `M${s[0].toFixed(1)} ${s[1].toFixed(1)}L${e[0].toFixed(1)} ${e[1].toFixed(1)}`; }
+const quad = (x0,z0,x1,z1)=>[[x0,.005,z0],[x1,.005,z0],[x1,.005,z1],[x0,.005,z1]];
+function coneItem(x, z){
+  const P=[[x-.13,0,z],[x+.13,0,z],[x,.3,z]].map(p=>project(cam,p));
+  return { z:(P[0][2]+P[1][2])/2, fill:'#f28c1a', d:'M'+P.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')+'Z' };
+}
+
+// f.op (optional, 0–1): faded figure, e.g. players in a grid that's not in play
+function figureItems(f, items){
+  const J=fkF(f), s=Math.sin(f.yaw), c=Math.cos(f.yaw), tc=TEAM[f.team]||f.team;
+  const Wd = b=>worldOf(f, b), op=f.op==null || f.op>.99 ? null : +f.op.toFixed(2);
+  const push = it=>{ if(it){ if(op!=null) it.op=op; items.push(it); } };
+  [0,1].forEach(i=>{
+    const hip=Wd(J['hip'+i]), knee=Wd(J['knee'+i]), ank=Wd(J['ank'+i]), toe=Wd(J['toe'+i]);
+    const midT=lerp3(hip,knee,.45), sockTop=lerp3(knee,ank,.4), waist=add3(hip,[0,.03,0]);
+    push(segItem(midT, knee, .13, SKIN));
+    push(segItem(waist, midT, .19, SHORTS, .04));
+    push(segItem(knee, sockTop, .115, SKIN));
+    push(segItem(sockTop, ank, .12, tc));
+    push(segItem(ank, toe, .105, BOOT));
+  });
+  push(segItem(add3(Wd(J.hip0),[0,.03,0]), add3(Wd(J.hip1),[0,.03,0]), .22, SHORTS, .04));
+  // Torso reads wide from the front/back, narrow side-on
+  const vx=f.x-cam.pos[0], vz=f.z-cam.pos[2], vn=Math.hypot(vx,vz)||1;
+  const facing=Math.abs((vx*s+vz*c)/vn);
+  push(segItem(Wd(J.base), Wd(J.neck), .22+.14*facing, tc, .02));
+  [0,1].forEach(i=>{
+    const sh=Wd(J['sh'+i]), el=Wd(J['el'+i]), ha=Wd(J['hand'+i]), sl=lerp3(sh,el,.55);
+    push(segItem(sl, el, .085, SKIN));
+    push(segItem(sh, sl, .105, tc, -.001));
+    push(segItem(el, ha, .08, SKIN));
+  });
+  const H=Wd(J.head);
+  push(segItem(Wd(J.neck), H, .09, SKIN, .01));
+  // Head: hair at the back, eyes at the front — together they show where the head faces
+  const hy=f.yaw+f.headTurn, hs=Math.sin(hy), hc=Math.cos(hy);
+  const head=dotItem(H, .12, SKIN, -.01);
+  push(head);
+  push(dotItem([H[0]-hs*.04, H[1]+.035, H[2]-hc*.04], .112, HAIR, -.005));
+  [-1,1].forEach(k=>{
+    const eye=dotItem([H[0]+hs*.1+hc*k*.045, H[1]+.01, H[2]+hc*.1-hs*k*.045], .022, '#111', -.03);
+    if(eye && head && eye.raw < head.raw) push(eye);
+  });
+}
+
+function makePool(id, n){
+  const g=document.getElementById(id), pool=[];
+  for(let i=0;i<n;i++){ const el=document.createElementNS(SVGNS,'path'); g.appendChild(el); pool.push(el); }
+  return pool;
+}
+function drawItems(pool, items){
+  items.sort((a,b)=>b.z-a.z);
+  for(let i=0;i<pool.length;i++){
+    const el=pool[i], it=items[i];
+    if(!it){ if(el._on){ el.setAttribute('d',''); el._on=false; } continue; }
+    el._on=true;
+    el.setAttribute('d', it.d);
+    el.setAttribute('stroke', it.stroke||'none');
+    el.setAttribute('stroke-width', it.w||0);
+    el.setAttribute('fill', it.fill||'none');
+    const op=it.op==null ? 1 : it.op;
+    if(el._op!==op){ el.setAttribute('opacity', op); el._op=op; }
+  }
+}
+function makeShadows(id, n){
+  const g=document.getElementById(id), out=[];
+  for(let i=0;i<n;i++){
+    const el=document.createElementNS(SVGNS,'ellipse');
+    el.setAttribute('fill','rgba(0,0,0,0.38)');
+    g.appendChild(el); out.push(el);
+  }
+  return out;
+}
+function placeShadow(el, x, z, rM, lift){
+  const C=project(cam,[x,0,z]);
+  const rx=rM*cam.f/C[2]*(1+lift*.6);
+  el.setAttribute('cx',C[0].toFixed(1)); el.setAttribute('cy',C[1].toFixed(1));
+  el.setAttribute('rx',rx.toFixed(1));   el.setAttribute('ry',(rx*(Math.sin(cam.pitch)+.15)).toFixed(1));
+  el.setAttribute('opacity', (1-Math.min(.7, lift*2)).toFixed(2));
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SCENE — players, ball and timeline                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+// SC.ev: timed callbacks [{at, fn}] in absolute seconds (board updates when a pass lands, etc.)
+const SC = { t0:0, P:null, prevP:null, prevD:0, end:0, holder:0, holdYaw:0, rest:[0,0], ev:[], ball:[0,0], roll:0, rollDir:[0,1] };
+let figs = [];
+function makeFigs(){
+  figs = PH[0].pl.map((p,i)=>{
+    const w=W(p);
+    return { team:DRILL.teams[i], role:DRILL.roles[i], x:w[0], z:w[1], yaw:0, headTurn:0, neck:.2, gait:Math.random(),
+             cad:.94+.12*Math.random(), ph:i*1.37, vx:0, vz:0, q:null, lift:0, start:w, moves:[] };
+  });
+  return figs;
+}
+
+// Facing: everyone's body is open to the ball and the grid; defenders square up to the ball
+function faceYaw(f, i, tt){
+  const P=SC.P, b=SC.ball, ang=p=>Math.atan2(p[0]-f.x, p[1]-f.z);
+  if(P && i===P.p && tt<P.tKick+.35) return P.yawK;          // opened up to the target for the pass
+  if(P && i===P.r && tt<P.tRest+.5)  return P.yawR;          // body shape set before the ball arrives
+  // SC.feint (ph.feint, opt-in): just after the control the holder sells a pass that way, then opens back up
+  if(i===SC.holder && SC.feint && P && i===P.r && tt>P.tRest+.5 && tt<P.tRest+1.05) return ang(SC.feint);
+  if(i===SC.holder) return SC.holdYaw;                       // on the ball: stays open to the next pass
+  if(f.role==='att') return ang(lerp2(b, SC.centre||[0,0], .4));
+  return ang(b);
+}
+function snapFig(f, i){
+  f.vx=f.vz=0; f.moves=[]; f.start=[f.x,f.z];
+  f.yaw=faceYaw(f, i, 99); f.headTurn=0;
+  f.neck=.25; f.q=gaitQ(f, 0, 1, 0, 0, 0);
+}
+
+function updateFig(f, i, tt, t, dt){
+  const p=posAt(f.start, f.moves, tt), vx=(p[0]-f.x)/dt, vz=(p[1]-f.z)/dt;
+  f.x=p[0]; f.z=p[1];
+  const k=Math.min(1, dt*12); f.vx=mix(f.vx, vx, k); f.vz=mix(f.vz, vz, k);
+  const sp=Math.hypot(f.vx, f.vz);
+  // Facing — on a longer, quicker move the hips open towards the run while the eyes stay on the ball
+  let ty=faceYaw(f, i, tt);
+  const omP = SC.P && SC.P.onMove && i===SC.P.p;                             // on-the-move pass: opens up just before the strike
+  if(SC.drib && i===SC.drib.i && sp>.4 && !(omP && tt>SC.P.tSet-.2)) ty=Math.atan2(f.vx, f.vz);       // dribbling: faces the run
+  if((DRILL.setUp && SC.drib) || f.armK!=null){ const ak = DRILL.setUp && SC.drib && i===SC.drib.i && !(omP && tt>SC.P.tKick) ? .45 : 1; f.armK = mix(f.armK==null ? 1 : f.armK, ak, Math.min(1, dt*4)); }
+  if(sp>1.6) ty += .4*sstep(1.6,2.8,sp)*wrap(Math.atan2(f.vx,f.vz)-ty);
+  const P=SC.P, kicking = P && i===P.p && tt<P.tKick+.35;
+  f.yaw += wrap(ty-f.yaw)*Math.min(1, dt*(kicking ? 10 : f.role==='att' ? 6 : 7));
+  if(P && P.shot && i===P.gk && tt>diveT(P) && tt<diveT(P)+2.0){ if(P.gkYaw==null) P.gkYaw=f.yaw; f.yaw=P.gkYaw; }   // square on through the dive
+  // Head and eyes: on the ball; the player on the ball scans the grid, glancing down at it now and then
+  const b=SC.ball, db=Math.hypot(b[0]-f.x, b[1]-f.z), resting = i===SC.holder && !(P && tt<P.tRest+.5);
+  let ht = resting ? .75*Math.sin(t*1.5+f.ph) : clamp(wrap(Math.atan2(b[0]-f.x, b[1]-f.z)-f.yaw), -1.35, 1.35);
+  let nt = resting ? .28+.2*Math.max(0, Math.sin(t*2.6+f.ph)) : clamp(Math.atan2(1.5, db)-.12, .05, .55);
+  // SC.look (opt-in): 'down' = head bowed, eyes on the ball the whole time; 'scan' = checks both shoulders before it arrives
+  const lk = SC.look && P && i===P.r ? SC.look : null;
+  if(lk==='down'){ ht=clamp(wrap(Math.atan2(b[0]-f.x, b[1]-f.z)-f.yaw), -1.35, 1.35); nt=.9; }
+  else if(lk==='scan' && tt<P.tArr-.3){ const u=clamp(tt/(P.tArr-.3), 0, 1); ht=1.25*Math.sin(2*Math.PI*u); nt=.1; }
+  f.headTurn += (ht-f.headTurn)*Math.min(1, dt*(lk==='scan' ? 10 : 8));
+  f.neck += (nt-f.neck)*Math.min(1, dt*6);
+  // Travel direction in the body frame → gait
+  const s=Math.sin(f.yaw), c=Math.cos(f.yaw), n=sp||1;
+  let q=gaitQ(f, (f.vx*c - f.vz*s)/n, (f.vx*s + f.vz*c)/n, sp, dt, t);
+  // First touch still finishing from the phase before (the next pass started straight after it)
+  const pp=SC.prevP;
+  if(pp && i===pp.r && !pp.ot){
+    const v=tt+SC.prevD-pp.tArr;
+    if(v<.65) q=mixQ(q, recvQ(pp, v), 1-sstep(.5,.62,v));
+  }
+  // Kick / first touch, blended in and out
+  if(P && i===P.p){
+    const u=(tt-P.tSet)*(P.ks||1);                                           // P.ks: a quicker swing on the move
+    if(u>-.05 && u<K.END){
+      const w=sstep(0,.1,u)*(1-sstep(K.END-.12,K.END,u)), pw=P.plantW, dx=pw ? pw[0]-f.x : 0, dz=pw ? pw[1]-f.z : 0;
+      q=mixQ(q, kickQ(u, P.kfoot, pw ? [dx*c-dz*s, dx*s+dz*c] : null), w);
+    }
+  }
+  f.dive=null;
+  if(P && P.shot && i===P.gk){                                            // the keeper dives for it
+    const u=tt-diveT(P);
+    if(u>0 && u<2.2){
+      if(!P.gkS) P.gkS=Math.sign(bodyOf([f.x,f.z], f.yaw, P.meet)[0])||1;    // side fixed at the strike
+      q=mixQ(q, diveQ(u, P.gkS), sstep(0,.08,u)*(1-sstep(2.0,2.2,u)));
+      f.dive={ s:P.gkS, a:diveRoll(u) };
+    }
+  }
+  if(P && i===P.r && !P.ot){
+    const v=tt-P.tArr;
+    if(v>-.6 && v<.65){ const w=sstep(-.55,-.45,v)*(1-sstep(.5,.62,v)); q=mixQ(q, recvQ(P, v), w); }
+  }
+  f.q=q; f.lift=q[0];
+}
+
+// Start a phase. snap: jump straight to the board (Back, Setup). Otherwise plan the pass and the
+// moves; with DRILL.flow the phase carries on from wherever everyone is (runs still in progress are
+// finished, not restarted, and a first-time pass meets the ball still rolling in).
+// Returns the plan (null on a snap).
+// ph.dribble: the holder runs with the ball. The first touch takes it from where it lies; then a touch
+// every ~1.5 m pushes it just ahead and the player runs onto it; the last touch lets it roll to a stop
+// in front, on the line of the run.
+function buildDrib(idx, plan){
+  const i=PH[idx].passer, mv=plan.moves[i], st=plan.starts[i];
+  if(!mv.length) return null;
+  const t0=Math.max(0, mv[0].t0), t1=mv[mv.length-1].t0+mv[mv.length-1].dur;
+  const pos=t=>posAt(st, mv, t);
+  const fwd=t=>{ const a=pos(Math.max(t0, t-.06)), b=pos(Math.min(t1, t+.06)), d=dist(a,b); return d>1e-3 ? [(b[0]-a[0])/d, (b[1]-a[1])/d] : null; };
+  const b0=SC.ball.slice(), T=[{ t:t0, p:b0 }, { t:t0+.18, p:b0 }];
+  // ph.touches===1 straight after a ball received in stride: the receiving touch IS the touch — it
+  // goes from the foot at once (t 0) and the next contact is the last one, setting the next ball
+  const one = PH[idx].touches===1 && PH[idx-1] && PH[idx-1].inStride;
+  if(one){ T.length=0; T.push({ t:0, p:b0 }); }
+  let acc=0, q=pos(t0+.18), lastU=fwd(t0+.3)||[0,1];
+  for(let t=t0+.2; !one && t<t1-.35; t+=.02){
+    const p=pos(t); acc+=dist(p,q); q=p;
+    if(acc>=1.5){ const u=fwd(t)||lastU; lastU=u; T.push({ t, p:[p[0]+u[0]*.32, p[1]+u[1]*.32] }); acc=0; }
+  }
+  // DRILL.setUp: when the ball is played next, the last touch sets it in the kicking spot, body open to the pass
+  const nx=PH[idx+1], sets = DRILL.setUp && nx && !nx.onMove && (nx.passer!==i || nx.shot), R = sets ? restSpot(idx) : null;
+  const pe=pos(t1); T.push({ t:t1, p: R ? R.p.slice() : [pe[0]+lastU[0]*.45, pe[1]+lastU[1]*.45] });
+  return { i, T, end:T[T.length-1].p, yaw: R ? R.yawH : Math.atan2(lastU[0], lastU[1]) };
+}
+function dribAt(D, tt){
+  const T=D.T;
+  if(tt<=T[0].t) return T[0].p;
+  for(let k=1;k<T.length;k++) if(tt<T[k].t){
+    const x=(tt-T[k-1].t)/Math.max(1e-3, T[k].t-T[k-1].t);
+    return lerp2(T[k-1].p, T[k].p, 1-(1-x)*(1-x));                     // quick off the foot, slowing
+  }
+  return D.end;
+}
+function scenePhase(idx, t, snap){
+  const ph=PH[idx];
+  SC.centre=centreOf(idx);
+  SC.look = ph.look || null;                                  // ph.look: the receiver's head as the ball comes ('down' | 'scan')
+  SC.feint = ph.feint ? W(ph.feint) : null;                  // ph.feint: the body fakes a pass towards that point after the control
+  if(snap || idx===0){
+    figs.forEach((f,i)=>{ const w=W(ph.pl[i]); f.x=w[0]; f.z=w[1]; });
+    SC.P=null; SC.prevP=null; SC.holder=ph.passer; SC.holdYaw=restSpot(idx).yawH; SC.rest=restSpot(idx).p; SC.ball=SC.rest.slice(); SC.drib=null;
+    figs.forEach(snapFig);
+    SC.t0=t; SC.end=0; SC.ev=[];
+    return null;
+  }
+  const d=t-SC.t0;
+  const carry = DRILL.flow ? { d, P:SC.P,
+    starts: figs.map(f=>posAt(f.start, f.moves, d)),
+    moves:  figs.map(f=>f.moves.filter(m=>m.t0+m.dur>d).map(m=>Object.assign({}, m, { t0:m.t0-d }))) } : null;
+  if(!carry) SC.ev=[];
+  const plan=planPhase(idx, carry);
+  figs.forEach((f,i)=>{ f.start=plan.starts[i]; f.moves=plan.moves[i]; const p=posAt(f.start, f.moves, 0); f.x=p[0]; f.z=p[1]; });
+  SC.prevP = carry ? SC.P : null; SC.prevD=d;
+  SC.P=plan.P; SC.holder=ph.passer; SC.holdYaw=restSpot(idx).yawH; SC.rest=restSpot(idx).p;
+  SC.drib = ph.dribble && !plan.P ? buildDrib(idx, plan) : null;
+  if(SC.drib){ SC.rest=SC.drib.end; SC.holdYaw=SC.drib.yaw; }
+  if(plan.P && plan.P.drib) SC.drib=plan.P.drib;                             // (carrying it into an on-the-move pass)
+  SC.t0=t; SC.end=plan.end;
+  return plan;
+}
+// Seconds after the phase start that Auto may play the next pass in a flowing drill:
+// straight off the first touch, or timed so a first-time strike meets the ball as it arrives.
+// A phase with runs but no pass doesn't wait for long runs to finish — they carry on into the next pass.
+function flowNext(idx, plan){
+  if(!plan) return 0;
+  if(!plan.P) return PH[idx].hold!=null ? PH[idx].hold : Math.min(plan.end, 2);   // ph.hold overrides
+  return restSpot(idx).ot && idx<PH.length-1 ? plan.P.tArr-OT_K : plan.P.tRest+.05;
+}
+function sceneUpdate(t, dt){
+  const tt=t-SC.t0, P=SC.P;
+  const nb = P ? ballAt(P, tt) : SC.drib ? dribAt(SC.drib, tt) : SC.rest, d=dist(nb, SC.ball);
+  if(d>1e-4){ SC.rollDir=unit([nb[0]-SC.ball[0], nb[1]-SC.ball[1]]); SC.roll += d/BR; }
+  SC.ball=nb.slice();
+  figs.forEach((f,i)=>updateFig(f, i, tt, t, dt));
+  while(SC.ev.length && t>=SC.ev[0].at){ SC.ev.shift().fn(); }
+}
+// Players (with shadows) and the ball, into the depth-sorted item list
+function peopleItems(items, shadows){
+  figs.forEach((f,i)=>{ figureItems(f, items); placeShadow(shadows[i], f.x, f.z, .36, f.lift); });
+  const b=[SC.ball[0], BR, SC.ball[1]], u=SC.rollDir, r=SC.roll;
+  placeShadow(shadows[figs.length], b[0]+.04, b[2]+.04, .13, 0);
+  const o=dotItem(b, .13, '#1b1b1b', .002), w=dotItem(b, .115, '#f4f4f4');
+  if(o) items.push(o); if(w) items.push(w);
+  // dark patch turning as it rolls
+  const pt=[b[0]+u[0]*.07*Math.sin(r), b[1]+.07*Math.cos(r), b[2]+u[1]*.07*Math.sin(r)];
+  if(toCam(cam,pt)[2] < toCam(cam,b)[2]){ const pi=dotItem(pt, .035, '#3a3a3a', -.003); if(pi) items.push(pi); }
+}
+/*@@ENGINE-END*/
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  WARM-UP RIG — exercise poses on top of the engine's figures      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+// The figures, body sizes, colours, gait and drawing primitives come from the shared engine above.
+// This part adds what the warm-up exercises need on top: a pose slot for the upper-body twist, kneeling
+// poses that pin the knees to the player's spot (fkW), contacts drawn by arm IK (hands on the hips, on a
+// partner, flat forearms), and ground drawing clipped at a near plane for the low close-up cameras.
+const sub3 = (a,b)=>[a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+const horizonY = cam=>cam.cy - cam.f*Math.tan(cam.pitch);
+const NEAR = .5;
+// Ground polygon / line, clipped at the near plane so they never wrap behind the camera
+function polyC(cam, pts){
+  const c=pts.map(p=>toCam(cam,p)), out=[];
+  for(let i=0;i<c.length;i++){
+    const a=c[i], b=c[(i+1)%c.length], ina=a[2]>=NEAR, inb=b[2]>=NEAR;
+    if(ina) out.push(a);
+    if(ina!==inb){ const t=(NEAR-a[2])/(b[2]-a[2]); out.push([mix(a[0],b[0],t), mix(a[1],b[1],t), NEAR]); }
+  }
+  if(out.length<3) return '';
+  return 'M'+out.map(p=>{ const s=toScreen(cam,p); return s[0].toFixed(1)+' '+s[1].toFixed(1); }).join('L')+'Z';
+}
+function lineC(cam, a, b){
+  let A=toCam(cam,a), C=toCam(cam,b);
+  if(A[2]<NEAR && C[2]<NEAR) return '';
+  if(A[2]<NEAR) A=lerp3(A, C, (NEAR-A[2])/(C[2]-A[2]));
+  else if(C[2]<NEAR) C=lerp3(C, A, (NEAR-C[2])/(A[2]-C[2]));
+  const s=toScreen(cam,A), e=toScreen(cam,C);
+  return `M${s[0].toFixed(1)} ${s[1].toFixed(1)}L${e[0].toFixed(1)} ${e[1].toFixed(1)}`;
+}
+TEAM.coach = '#e9e9e9';
+const GUIDE = '#ffe066';
+// Warm-up running style for the engine gait: tall, relaxed, light on the feet; feet as wide as the
+// exercises' standing pose, so moving off from an exercise or settling into one needs no shuffle of the feet
+STY.wu = { H:.92, W:.14, lean:.07, arm:[.08,.14,.4] };
+
+// Exercise pose = the engine's pose array plus one slot: lift, lean, roll, legL[a,b,g], legR[a,b,g],
+// armL[a,b,e], armR[a,b,e], toe[L,R], anchor, neck, twist
+//  anchor = 1 pins the knees to the figure's spot instead of the pelvis (kneeling exercises)
+//  twist = upper body turned about the spine (+ = chest turns to the figure's right)
+const QW = (lift,lean,roll,l0,l1,a0,a1,toe,anchor,neck,twist)=>
+  [lift,lean,roll,...l0,...l1,...a0,...a1, ...(Array.isArray(toe) ? toe : [toe||0, toe||0]), anchor||0, neck||0, twist||0];
+const Q20 = q=>{ if(q.length>=20) return q; q=q.slice(); while(q.length<20) q.push(0); return q; };   // engine poses → exercise poses
+
+const pose = {
+  stand: ()=>QW(0,.03,0, [.04,.08,.05],[.04,.08,.05], [.05,.12,.25],[.05,.12,.25]),
+  ready: ()=>QW(0,.2,0,  [.35,.6,.1],[.35,.6,.1],    [.25,.3,.7],[.25,.3,.7]),
+  land:  ()=>QW(0,.42,0, [.8,1.4,.12],[.8,1.4,.12],  [.55,.3,.5],[.55,.3,.5]),
+  athletic: ()=>QW(0,.32,0, [.55,.95,.2],[.55,.95,.2], [.4,.45,1],[.4,.45,1]),   // low, knees out — the shuffle's base
+  // amp: 1 = run, ~.6 = easy jog
+  run(ph, back, amp){
+    amp = amp||1;
+    const leg = p=>[ .55*amp*Math.sin(TAU*p), .3+(.55+.45*amp)*Math.max(0, Math.cos(TAU*p)), .03 ];
+    const arm = p=>[ -.5*amp*Math.sin(TAU*p), .12, 1.3+.1*amp ];
+    // Running backwards: up on the toes, knees soft
+    return QW(.045*amp*Math.abs(Math.sin(TAU*ph)), back ? -.04 : .06+.08*amp, 0, leg(ph), leg(ph+.5), arm(ph), arm(ph+.5), back ? .65 : 0);
+  },
+  // Side-shuffle, low athletic stance. First half of the cycle the lead foot steps out while the
+  // trail foot pushes; second half the trail foot closes in. Feet never cross.
+  // lead = index of the leading leg (0 = left, 1 = right).
+  shuffle(ph, lead){
+    const u=ph-Math.floor(ph), first=u<.5, k=first ? u*2 : (u-.5)*2;
+    const x = first ? mix(.2,.48,k) : mix(.48,.2,k);            // each foot's distance from the centre
+    const g = Math.asin(clamp((x-B.HIP)/.8, 0, .6));             // knees stay out over the toes
+    const up = Math.sin(PI*k);                                   // swing foot lifts a little
+    const leadLeg  = [.55+(first ? .1*up : 0), .95+(first ? .3*up : 0), g];
+    const trailLeg = [.55+(first ? 0 : .1*up), .95+(first ? 0 : .3*up), g];
+    const legs = lead ? [trailLeg, leadLeg] : [leadLeg, trailLeg];
+    return QW(.012*up, .32, 0, legs[0], legs[1], [.4,.45,1],[.4,.45,1]);
+  },
+  // Bottom of a lunge: front thigh level with the shin upright (90°), back knee 90° just off
+  // the ground, back foot up on its toes. lead = index of the front leg (0 = left, 1 = right).
+  lungeLow(lead){
+    const front=[1.45,1.45,.06], back=[-.25,1.5,.06];
+    return QW(0,.04,0, lead ? back : front, lead ? front : back, [.1,.15,.5],[.1,.15,.5], lead ? [1,0] : [0,1]);
+  },
+  // One walking-lunge rep, u = 0→1: step out and lower (0–.45), hold at 90° (.45–.6),
+  // push up and bring the back leg through to stand (.6–1).
+  lunge(u, lead){
+    const S=pose.stand(), L=pose.lungeLow(lead);
+    const step = u<.45 ? Math.sin(PI*u/.45) : 0, swing = u>.6 ? Math.sin(PI*(u-.6)/.4) : 0;
+    const w = u<.45 ? ease(u/.45) : u<.6 ? 1 : 1-ease((u-.6)/.4);
+    const q = S.map((v,i)=>mix(v, L[i], w));
+    const fi = 3+lead*3, bi = 3+(1-lead)*3;          // front / back leg slots in the pose array
+    q[fi] += .2*step;  q[fi+1] += .5*step;           // front foot lifts as it steps out
+    q[bi] += .3*swing; q[bi+1] += .7*swing;          // back foot clears the ground coming through
+    return q;
+  }
+};
+// Kneeling: thighs upright, shins flat on the ground, feet laid flat behind
+pose.kneel  = ()=>QW(-.03, 0, 0, [0,PI/2,.06],[0,PI/2,.06], [.9,.15,1.3],[.9,.15,1.3], PI, 1);
+// Partner holding the legs: kneels low with knees apart, leaning over (arms are placed by ikArm)
+pose.holder = ()=>QW(-.03, 1.15, 0, [.6,.6+PI/2,.3],[.6,.6+PI/2,.3], [1,.3,.5],[1,.3,.5], PI, 1);
+// Russian hamstring rep (6 s): one straight line knees → head, lowering slowly from the knees,
+// a short hold, then back up. Thighs tilt by the same angle as the torso, so the waist never bends.
+pose.nordic = t=>{
+  const u=(t%6)/6, th=.8*(u<.6 ? ease(u/.6) : u<.7 ? 1 : 1-ease((u-.7)/.3));
+  const arm=[.9+.6*th, .2, 1.2];                     // hands come forward, ready to catch
+  return QW(-.03, th, 0, [-th,PI/2-th,.06],[-th,PI/2-th,.06], arm, arm, PI, 1);
+};
+
+// Single toe raise: balance on one leg with the other knee lifted. side = index of the
+// raised leg (0 = left). Standing heel rises and lowers once per TOE.T seconds, TOE.REPS times.
+const TOE = { T:1.2, REPS:30 };
+const oneLeg = (side, h)=>{
+  const up=[1.3,1.7,.05], stand=[.02,.04,.05], arm=[.15,.6,.35];   // arms out for balance
+  return QW(0, .03, 0, side ? stand : up, side ? up : stand, arm, arm, side ? [.75*h, .3] : [.3, .75*h]);
+};
+const toeRise = c=>{
+  if(c>=TOE.T*TOE.REPS) return 0;                    // set finished: heel down
+  const u=(c%TOE.T)/TOE.T;
+  return u<.4 ? ease(u/.4) : u<.55 ? 1 : 1-ease((u-.55)/.45);
+};
+pose.oneLegL = ()=>oneLeg(0, 0);
+pose.oneLegR = ()=>oneLeg(1, 0);
+pose.raiseL  = c=>oneLeg(0, toeRise(c));   // left knee up, rising on the right toes
+pose.raiseR  = c=>oneLeg(1, toeRise(c));
+
+// ── Skating jumps: push off one leg, fly forwards-and-sideways, land on the other leg, hold ──
+// st = index of the leg in use (0 = left, 1 = right); the other leg is the free leg.
+// Arms counter-swing: the arm on the push side swings forward across the body.
+function skQ(st, lean, roll, stLeg, frLeg, stArm, frArm, stToe, frToe){
+  const L = st ? [frLeg, stLeg] : [stLeg, frLeg];
+  const A = st ? [frArm, stArm] : [stArm, frArm];
+  const T = st ? [frToe, stToe] : [stToe, frToe];
+  return QW(0, lean, roll*(st ? 1 : -1), L[0], L[1], A[0], A[1], T);
+}
+const SKP = {
+  // balanced on one leg, knee soft, free foot tucked behind, arms out for balance
+  hold:  st=>skQ(st, .22, .05, [.35,.55,.04], [-.3,.95,-.08], [.1,.45,.4], [.35,.1,.6], 0, .4),
+  // loading the push: deep knee bend on the stance leg, arms wound up the other way
+  load:  st=>skQ(st, .45, .1,  [.75,1.35,.04], [-.15,.75,-.05], [-.4,.15,.4], [.7,-.25,.7], 0, .4),
+  // in the air (st = push leg): push leg stretched out away from the jump, landing leg reaching over
+  air:   st=>skQ(st, .35, -.12, [-.1,.15,.45], [.45,.6,.3], [.9,-.3,.6], [-.5,.25,.4], .3, .3),
+  // touchdown on the ball of the landing foot (st = landing leg)
+  reach: st=>skQ(st, .3, .1,  [.4,.5,.12], [-.25,.6,-.02], [-.5,.25,.4], [.9,-.3,.6], .25, .3),
+  // absorb: knee bent and over the toes, free leg behind and across
+  land:  st=>skQ(st, .45, .08, [.8,1.4,.05], [-.35,1.1,-.12], [-.35,.2,.4], [.75,-.25,.7], 0, .4)
+};
+pose.skHoldL = ()=>SKP.hold(0);
+pose.skHoldR = ()=>SKP.hold(1);
+// A = sideways distance from the centre line, D = metres forward per jump, H = extra lift in the air.
+
+const ARMB = { chest:[.5,-.18,1.15], fwd:[PI/2-.05,-.17,.05] };
+const withArms = (q, A)=>{ q=q.slice(); for(let i=0;i<3;i++){ q[9+i]=A[i]; q[12+i]=A[i]; } return q; };
+
+function rotM(a, th){   // rotation matrix (rows) about unit axis a by th
+  const c=Math.cos(th), s=Math.sin(th), t=1-c, [x,y,z]=a;
+  return [[t*x*x+c, t*x*y-s*z, t*x*z+s*y], [t*x*y+s*z, t*y*y+c, t*y*z-s*x], [t*x*z-s*y, t*y*z+s*x, t*z*z+c]];
+}
+const mulM = (M,v)=>[M[0][0]*v[0]+M[0][1]*v[1]+M[0][2]*v[2], M[1][0]*v[0]+M[1][1]*v[1]+M[1][2]*v[2], M[2][0]*v[0]+M[2][1]*v[1]+M[2][2]*v[2]];
+
+// Joints for drawing: rolled figures turn rigidly about the curl's centre, then drop so the lowest
+// part (allowing for limb thickness) sits where the feet were — the body rolls over the ground.
+const RAD = { head:.12, neck:.1, base:.14, pelvis:.13, sh0:.1, sh1:.1, hip0:.1, hip1:.1, toe0:.02, toe1:.02 };
+function bodyJ(f){
+  if(f.customJ) return f.customJ;   // exercise builds the joints directly (Ex 4 forearm press-up)
+  const J=fkW(f.q);
+  if(!f.rollRot) return J;
+  const keys=Object.keys(J), M=rotM(f.rollRot.axis, f.rollRot.th);
+  const C=['pelvis','neck','knee0','knee1'].reduce((a,k)=>add3(a, sc3(J[k], .25)), [0,0,0]);
+  const lk = keys.filter(k=>!(f.rollRot.skip||[]).includes(k));   // skip: joints placed afterwards (a supporting forearm)
+  const low = JJ=>Math.min(...lk.map(k=>JJ[k][1]-(RAD[k]||.05)));
+  const R={};
+  keys.forEach(k=>{ R[k]=add3(C, mulM(M, [J[k][0]-C[0], J[k][1]-C[1], J[k][2]-C[2]])); });
+  const dy=low(J)-low(R);
+  keys.forEach(k=>{ R[k][1]+=dy; });
+  return R;
+}
+
+
+// ── Single-leg stance throwing: pairs on one leg, taking turns with a simple two-hand throw ──
+// Level 2: after catching, the player moves the ball once around the raised free leg (hand to hand,
+// round the outside, under the thigh, back over the top) before throwing it back. The free knee is
+// raised in front so the ball can go round it. One throw every THR.CYC seconds: AR seconds of moving
+// the ball round the leg (not on the very first throw — nothing has been caught yet), then the Level 1
+// throw: hold at the chest, swing down, toss underarm (release at REL), FLY seconds in the air.
+// Throws alternate A → B → A …, N throws per set (5 each). Foot goes down once the set is done.
+const THR = { AR:2.4, FLY:.7, H:.75, N:10 };
+THR.CYC = 2.6 + THR.AR; THR.REL = 1.2 + THR.AR;
+const ARM = { chest:[.55,-.2,1.25], low:[.05,-.15,.35], up:[1.3,-.15,.15], reach:[1.05,-.1,.4], out:[.15,.6,.35] };
+const mixA = (a,b,k)=>a.map((v,i)=>mix(v, b[i], k));
+function throwArms(role, u){   // role 'T' = throwing this cycle, 'C' = catching
+  u -= THR.AR;
+  if(role==='T'){
+    if(u<.6)  return ARM.chest;
+    if(u<1)   return mixA(ARM.chest, ARM.low, ease((u-.6)/.4));
+    if(u<1.3) return mixA(ARM.low, ARM.up, ease((u-1)/.3));
+    if(u<1.8) return mixA(ARM.up, ARM.out, ease((u-1.3)/.5));
+    return ARM.out;
+  }
+  if(u<.8)  return ARM.out;
+  if(u<1.3) return mixA(ARM.out, ARM.reach, ease((u-.8)/.5));
+  if(u<1.9) return ARM.reach;
+  if(u<2.3) return mixA(ARM.reach, ARM.chest, ease((u-1.9)/.4));
+  return ARM.chest;
+}
+const thrCycle = T=>{ const n=Math.min(THR.N-1, Math.floor(T.prog/THR.CYC)); return { n, u:T.prog-n*THR.CYC }; };
+const FREE_UP = [1.3,1.75,.04];   // free knee raised in front, thigh about level
+// Ball loop round the free thigh: radius, centre (fraction hip → knee) and how far it tilts along the
+// thigh; LEAN = how far over the player bends, FREE = free leg in the crouch (shin about upright)
+const LOOP = { R:.19, MID:.88, TILT:.12, LEAN:.5, FREE:[1.6,1.1,.04], STAND:[.55,.95,.04], SIDE:1 };   // SIDE 1: hands hold the ball from its side, not from below
+// Ball round the free thigh, k = 0 → 1 (body frame): from the chest hold down onto the top of the thigh,
+// round the outside, under, up the inside, back on top, back to the chest. Returns the ball and the
+// hand targets (null = that hand rests out to the side).
+function aroundLeg(q, st, k){
+  const J=fkW(q), fr=1-st, hip=J['hip'+fr], knee=J['knee'+fr];
+  const ax=sc3(sub3(knee,hip), 1/Math.hypot(...sub3(knee,hip)));
+  // the loop is tilted along the thigh: over the top out near the knee (well clear of the belly),
+  // under the middle of the thigh (clear of the shin hanging from the knee)
+  const cAt = ph=>lerp3(hip, knee, LOOP.MID + LOOP.TILT*Math.cos(ph)), c=cAt(0);
+  let u1=sub3([0,1,0], sc3(ax, ax[1])); u1=sc3(u1, 1/Math.hypot(...u1));   // "up", square to the thigh
+  const s=fr ? 1 : -1, u2=[s, 0, 0];                                         // outwards (free leg's side)
+  const R=LOOP.R, chest=(()=>{ const m=lerp3(J.hand0, J.hand1, .5); return [m[0], m[1], m[2]+.07]; })();
+  const top=add3(c, sc3(u1, R));
+  const both = b=>[add3(b, [-.1,0,0]), add3(b, [.1,0,0])];
+  if(k<.15){ const b=lerp3(chest, top, ease(k/.15)); return { ball:b, hands:both(b) }; }
+  if(k>.85){ const b=lerp3(top, chest, ease((k-.85)/.15)); return { ball:b, hands:both(b) }; }
+  const ph=TAU*ease((k-.15)/.7);                                            // outside first, then under, then inside
+  const n=add3(sc3(u1, Math.cos(ph)), sc3(u2, Math.sin(ph)));
+  const b=add3(cAt(ph), sc3(n, R)), grip=add3(b, sc3(n, .075*(1-LOOP.SIDE)));                   // hands on the far side of the ball
+  // the free-leg-side hand carries it round the outside and under, the other hand takes it up the
+  // inside; both hands are on it at the top and for the hand-over underneath
+  const rest = i=>[ (i?1:-1)*.32, J.pelvis[1]+.05, .12 ];
+  const wOut = Math.max(1-sstep(1.2*PI, 1.45*PI, ph), sstep(1.75*PI, 2*PI, ph));
+  const wIn  = Math.max(1-sstep(0, .3*PI, ph), sstep(.85*PI, 1.1*PI, ph));
+  const hands=[null,null];
+  hands[fr] = lerp3(rest(fr), add3(grip, sc3(ax,-.06)), wOut);
+  hands[st] = lerp3(rest(st), add3(grip, sc3(ax, .06)), wIn);
+  return { ball:b, hands };
+}
+// f.thr = { st (leg in use: 0 left, 1 right), isA, go, t0, speed, prog, ph }
+function thrPose(f, t, dt){
+  const T=f.thr;
+  if(T.go && t>=T.t0) T.prog = Math.min(T.prog + dt*T.speed, THR.N*THR.CYC + 1);
+  const { n, u } = thrCycle(T), role = (n%2===0)===T.isA ? 'T' : 'C', a=throwArms(role, u);
+  // moving the ball round the leg: sink on the supporting knee, free knee higher, lean over it so the
+  // hands can reach under the thigh (w eases in and out of that crouch)
+  const w = T.go && role==='T' && n>0 && u<THR.AR ? Math.min(sstep(0, .5, u), sstep(0, .45, THR.AR-u)) : 0;
+  const stand=mixA([.12,.22,.04], LOOP.STAND, w), free=mixA(FREE_UP, LOOP.FREE, w);   // supporting knee soft, free knee up in front
+  const v=u-THR.AR, lean = .1 + (role==='T' && v>1 && v<1.5 ? .12*Math.sin(PI*(v-1)/.5) : 0) + LOOP.LEAN*w;
+  const one = QW(0, lean, .03*Math.sin(T.prog*2.3+T.ph), T.st ? free : stand, T.st ? stand : free, a, a, T.st ? [.4,0] : [0,.4], 0, .5);
+  const down = clamp((T.prog-THR.N*THR.CYC)/.6, 0, 1);
+  const q = down ? mixQ(one, QW(0,.05,0, [.04,.08,.05],[.04,.08,.05], a, a), ease(down)) : one;
+  // moving the ball round the leg: the hands follow the ball (world targets for the arm IK)
+  f.around=null; f.armW=null;
+  if(T.go && role==='T' && n>0 && u<THR.AR){
+    const A=aroundLeg(q, T.st, u/THR.AR);
+    f.around=worldOf(f, A.ball);
+    f.armW=A.hands.map(h=>h ? worldOf(f, h) : null);
+  }
+  return q;
+}
+// Ball held between the hands (world space), from the pose as drawn
+function handsMid(f){
+  const J=fkW(f.q), m=lerp3(J.hand0, J.hand1, .5);
+  return worldOf(f, [m[0], m[1], m[2]+.07]);
+}
+// Where a pair's ball is: going round the thrower's leg, in the thrower's hands, in flight, or caught
+function ballPos(P, A, Bf){
+  const { n, u } = thrCycle(A.thr), thrower = n%2 ? Bf : A, catcher = n%2 ? A : Bf;
+  if(thrower.around) return thrower.around;
+  if(u<THR.REL) return handsMid(thrower);
+  if(u<THR.REL+THR.FLY){
+    if(P.fn!==n){ P.fn=n; P.from=handsMid(thrower); }
+    const k=(u-THR.REL)/THR.FLY, p=lerp3(P.from, handsMid(catcher), k);
+    p[1] += THR.H*4*k*(1-k);
+    return p;
+  }
+  return handsMid(catcher);
+}
+
+// ── Level 5 Ex 3: single-leg stance — testing the partner's balance ──
+// Pairs on one leg, face to face within arm's reach, each holding a ball in both hands at chest height,
+// the two balls pressed together. They push the balls against each other (no hitting — the balls always
+// touch) to push the partner off balance. s = how far the contact point has moved towards B (+) or A (−):
+// the side being pushed leans back and gives ground, the other leans in. When a player's raised foot
+// touches the ground, the partner wins a point and the game starts again. SET s per leg.
+const PB = { SET:20, BR:.115, AHEAD:.47, IN:1, LOSE:.55, DOWN:.9, RESET:1.2,
+  EVENTS:[{ t:6.2, loser:'B' }, { t:13.6, loser:'A' }] };
+PB.GAP = 2*PB.AHEAD + 2*PB.BR - .02;                  // body to body: the two balls just pressed together
+// shared state of the pushing game at time T: contact shift s, who's losing and how far (w), score
+function pbState(T){
+  let s=null, loser=null, w=0, score=[0,0], from=0;
+  for(const E of PB.EVENTS){
+    const u=T-E.t, dir = E.loser==='B' ? 1 : -1, end=PB.LOSE+PB.DOWN+PB.RESET;
+    if(u<0) break;
+    if(u>=end){ score[E.loser==='B' ? 0 : 1]++; from=E.t+end; continue; }
+    const base=pbBase(T, from), push=sstep(0, PB.LOSE, u), back=sstep(PB.LOSE+PB.DOWN, end, u);
+    s = mix(base, dir*.16, push)*(1-back);                 // the contact runs away to the loser, then both reset
+    w = sstep(PB.LOSE*.6, PB.LOSE+.35, u)*(1-back);       // loser's raised foot goes down
+    loser = E.loser;
+    if(u>PB.LOSE+.3) score[E.loser==='B' ? 0 : 1]++;     // point to the partner
+    break;
+  }
+  if(s===null) s=pbBase(T, from);
+  return { s, loser, w, score };
+}
+// the to-and-fro of the pushing, easing in at the start and after every restart
+const pbBase = (T, from)=>(.06*Math.sin(1.25*T) + .035*Math.sin(2.7*T+1.1) + .02*Math.sin(4.3*T+.4)) * sstep(from, from+PB.IN, T);
+// f.pb = { st, isA, t0, speed, prog, x0, z0, u:[ux,uz] unit towards the partner, ph }
+function pbPose(f, t, dt){
+  const P=f.pb;
+  if(P.go && t>=P.t0) P.prog = Math.min(P.prog + dt*P.speed, PB.SET + 1.2);
+  const T=Math.min(P.prog, PB.SET), G=pbState(Math.max(0,T)), me = P.isA ? 'A' : 'B';
+  const sMe = P.isA ? G.s : -G.s;                         // + = this player is winning (contact moved towards the partner)
+  const lose = G.loser===me ? G.w : 0;
+  const done = clamp((P.prog-PB.SET)/.8, 0, 1);
+  // body: leans into the push when winning, back when being pushed; drifts a little with the contact
+  const q=SKP.hold(P.st);
+  q[1] = .16 + .8*sMe - .2*lose;
+  q[2] += (.05*Math.sin(P.prog*3.1+P.ph) + .12*Math.sin(P.prog*5.3+P.ph)*Math.abs(sMe)) * (1-lose);
+  q[18] = .15;
+  const fr=1-P.st;
+  if(lose){   // raised foot comes down behind to save the balance
+    const stp=[.0,.15,.05];
+    for(let i=0;i<3;i++) q[3+fr*3+i]=mix(q[3+fr*3+i], [-.25,.2,.05][i], lose);
+    q[3+P.st*3]=mix(q[3+P.st*3], stp[0], lose); q[4+P.st*3]=mix(q[4+P.st*3], stp[1], lose);
+  }
+  const drift = (P.isA ? 1 : -1)*G.s*.75;       // along the line towards the partner
+  f.x = P.x0 + P.u[0]*drift; f.z = P.z0 + P.u[1]*drift;
+  // ball: the contact point between the two balls sits on the midline, shifted by s
+  const mid=[P.x0 + P.u[0]*PB.GAP/2, P.z0 + P.u[1]*PB.GAP/2], c=G.s*(P.isA ? 1 : -1);
+  let bc=[mid[0] + P.u[0]*(c - PB.BR), mid[1] + P.u[1]*(c - PB.BR)];
+  let by=1.0 + .03*Math.sin(P.prog*2.2);
+  const wOwn=Math.max(lose, done);
+  if(wOwn){   // the player who lost the balance (or everyone, once the set is done) pulls the ball back in to the chest
+    const Jq=fkW(q), own=worldOf(f, [0, Jq.sh0[1]-.33, Jq.sh0[2]+.32]);
+    bc=[mix(bc[0], own[0], wOwn), mix(bc[1], own[2], wOwn)]; by=mix(by, own[1], wOwn);
+  }
+  f.ballW=[bc[0], by, bc[1]];
+  // hands on either side of the ball, a little behind its middle
+  const side=[P.u[1], -P.u[0]];                          // the player's right
+  f.armW=[-1,1].map(k=>[bc[0] + side[0]*k*.11 - P.u[0]*.04, by-.02, bc[1] + side[1]*k*.11 - P.u[1]*.04]);
+  if(P.palms){   // no ball: palms meet the partner's at the contact point (arm's length apart), hands drop once balance is lost or the set ends
+    const cp=[mid[0]+P.u[0]*c, mid[1]+P.u[1]*c];
+    f.armW = wOwn>.3 ? null : [-1,1].map(k=>[cp[0]+side[0]*k*.13, 1.22, cp[1]+side[1]*k*.13]);
+    f.ballW=null;
+  }
+  return done ? mixQ(q, withArms(pose.stand(), ARMB.chest), ease(done)) : q;
+}
+
+function ballItems(cam, p, items){
+  const o=dotItem(p, .13, '#1b1b1b', .002), w=dotItem(p, .115, '#f4f4f4');
+  if(o) items.push(o); if(w) items.push(w);
+}
+
+// ── Press-up tunnel: players side by side in the press-up position, the ball rolled underneath ──
+// Plank: one straight line feet → hips → shoulders → head, arms straight under the shoulders,
+// up on the toes. Body angle ~0.3 rad so the hands just reach the ground.
+const P4 = {
+  plank:       ()=>QW(0,1.27,0, [-1.27,0,.03],[-1.27,0,.03], [0,.05,0],[0,.05,0], .9),
+  crouchHands: ()=>QW(0,1.05,0, [1.5,2.3,.2],[1.5,2.3,.2],  [.1,.05,0],[.1,.05,0], .6),   // squat, hands on the ground
+  // deep squat, hands on the ball at the ground ~0.6 m in front of the feet
+  crouchRoll:  ()=>QW(0,1.05,0, [1.5,2.3,.15],[1.5,2.3,.15], [.3,-.15,.05],[.3,-.15,.05]),
+  crouchPick:  ()=>QW(0,1.05,0, [1.5,2.3,.15],[1.5,2.3,.15], [.25,-.15,.05],[.25,-.15,.05]),
+  standChest:  ()=>QW(0,.05,0, [.04,.08,.05],[.04,.08,.05], ARM.chest, ARM.chest)
+};
+// Getting down (g 0 → 1), staged like a real player rather than one blend:
+//   0–.4  bend at the knees and hips, reaching the hands to the ground (planted from ~.4)
+//   .4–.75 left foot steps back, passing a low knee;  .55–.9 right foot follows
+//   .45–.95 torso tilts into the plank line;  .9–1 hips dip a touch and brace
+// Getting up is the same played backwards. The hands stay pinned to the ground by IK (plantW).
+// Leg from a foot target: ankle (z forward, y down) relative to the hip → [thigh angle, knee bend], knee forward
+const PIN = [.2, .02, .44];   // planted hand spot (body frame, ± x): under the shoulders in the plank
+function fitLean(q){
+  const reach = L=>{ q[1]=L; const s=fkW(q).sh1; return Math.hypot(s[0]-PIN[0], s[1]-PIN[1], s[2]-PIN[2]); };
+  let lo=.6, hi=1.65;
+  for(let i=0;i<14;i++){ const m=(lo+hi)/2; if(reach(m)>.535) lo=m; else hi=m; }
+  return hi;
+}
+const FOOT = { crouch:[.12,.34], plank:[-.84,.26] };   // ankle below/behind the hip, squat vs plank
+function downQ(g){
+  g=clamp(g,0,1);
+  const S=pose.stand(), C=P4.crouchHands(), P=P4.plank();
+  const q = g<.4 ? mixQ(S, C, ease(g/.4)) : mixQ(C, P, ease(clamp((g-.45)/.5, 0, 1)));
+  if(g>=.4){
+    // hips stay at squat height until both feet are back, then settle into the plank line
+    const H = mix(FOOT.crouch[1], FOOT.plank[1], ease(clamp((g-.85)/.15, 0, 1)));
+    [clamp((g-.4)/.35, 0, 1), clamp((g-.55)/.35, 0, 1)].forEach((k,i)=>{
+      const e=ease(k), z=mix(FOOT.crouch[0], FOOT.plank[0], e), y=H - .07*Math.sin(PI*k);   // foot lifts a little as it goes back
+      const [a,b]=legIK(z, y);
+      q[3+i*3]=a; q[4+i*3]=b; q[5+i*3]=mix(.2, .03, e);
+    });
+  }
+  if(g>.9) q[0] -= .025*Math.sin(PI*(g-.9)/.1);           // small dip, then brace
+  const w=plantW(g);
+  if(w>0){ const L0=q[1], fit=fitLean(q); q[1]=mix(L0, fit, w); }
+  return q;
+}
+const plantW = g=>clamp((g-.3)/.1, 0, 1);   // how firmly the hands are pinned to the ground
+
+function ikArm(sh, target, pole){
+  const L1=B.LU, L2=B.LF;
+  let d=[target[0]-sh[0], target[1]-sh[1], target[2]-sh[2]];
+  const n=Math.hypot(...d)||1, D=Math.min(n, L1+L2-.005);
+  d=sc3(d, 1/n);
+  const a=(L1*L1+D*D-L2*L2)/(2*D), h=Math.sqrt(Math.max(0, L1*L1-a*a));
+  const pd=pole[0]*d[0]+pole[1]*d[1]+pole[2]*d[2];
+  let p=[pole[0]-pd*d[0], pole[1]-pd*d[1], pole[2]-pd*d[2]];
+  p=sc3(p, 1/(Math.hypot(...p)||1));
+  return [add3(add3(sh, sc3(d,a)), sc3(p,h)), add3(sh, sc3(d,D))];
+}
+
+
+function ringItem(cam, c, rM, color){   // flat ring on the ground (highlight)
+  const P=[]; for(let i=0;i<=24;i++){ const a=i/24*2*PI; P.push(project(cam, [c[0]+rM*Math.cos(a), c[1], c[2]+rM*Math.sin(a)])); }
+  if(P.some(p=>p[2]<.6)) return null;
+  const C=project(cam,c);
+  return { z:C[2]-.4, raw:C[2], d:'M'+P.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L'), stroke:color, w:(.03*cam.f/C[2]).toFixed(2) };
+}
+function coneH(cam, x, z, h){   // h = cone height (default .3 m; small hurdle cones are lower)
+  h=h||.3; const r=.13*Math.max(.8, h/.3);
+  const P=[[x-r,0,z],[x+r,0,z],[x,h,z]].map(p=>project(cam,p));
+  if(P.some(p=>p[2]<.6)) return null;
+  return { z:(P[0][2]+P[1][2])/2, fill:'#f28c1a', d:'M'+P.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L')+'Z' };
+}
+
+// guide = true: hip–knee–ankle line over each leg; 'body': one line knees → hips → shoulders → head
+
+// ── Camera rigs: each returns a camera pose {pos, yaw, pitch, f, cy} ──
+// Follow: stays `dist` in front of the group, looking back at them,
+// `offset` radians round to the side so knees and hips read in three-quarter view.
+// fixX: hold the camera on one sideways line (stops it swaying with zig-zag movement).
+function followCam(F, figs, dt, snap){
+  const mx = F.fixX!=null ? F.fixX : figs.reduce((s,f)=>s+f.x,0)/figs.length;
+  const mz = figs.reduce((s,f)=>s+f.z,0)/figs.length;
+  const k = snap ? 1 : Math.min(1, dt*3);
+  F.heading += wrap(F.headingTarget-F.heading)*(snap ? 1 : Math.min(1, dt*2.2));
+  for(const k in F.target) F[k] += (F.target[k]-F[k])*(snap ? 1 : Math.min(1, dt*2.2));   // per-phase framing
+  F.mx = snap ? mx : mix(F.mx, mx, k);
+  F.mz = snap ? mz : mix(F.mz, mz, k);
+  const yaw = F.heading + PI + F.offset;
+  return { pos:[F.mx - F.dist*Math.sin(yaw), F.height, F.mz - F.dist*Math.cos(yaw)],
+           yaw, pitch:Math.atan2(F.height-F.lookY, F.dist), f:F.f, cy:F.cy };
+}
+// Fixed: a camera at `pos` looking at `look` (used for the overview of the area)
+// Crane between two camera poses: w = 0 → A, 1 → B
+function setCam(cam, A, Bp, w){
+  const e=w*w*(3-2*w);
+  cam.pos=lerp3(A.pos, Bp.pos, e); cam.yaw=A.yaw+wrap(Bp.yaw-A.yaw)*e;
+  cam.pitch=mix(A.pitch, Bp.pitch, e); cam.f=mix(A.f, Bp.f, e); cam.cy=mix(A.cy, Bp.cy, e);
+}
+
+
+// Forward kinematics → joint positions in the body frame
+function fkW(q){
+  const lift=q[0], lean=q[1], roll=q[2];
+  const leg = i=>({ a:q[3+i*3], b:q[4+i*3], g:q[5+i*3] });
+  const arm = i=>({ a:q[9+i*3], b:q[10+i*3], e:q[11+i*3] });
+  const drop = L=>(B.LT*Math.cos(L.a) + B.LS*Math.cos(L.a-L.b))*Math.cos(L.g);
+  const tp = i=>q[15+i]||0, ankH = i=>Math.max(B.ANK, .03+Math.sin(tp(i))*B.FOOT);   // higher when on the toes
+  const py = Math.max(drop(leg(0))+ankH(0), drop(leg(1))+ankH(1)) + lift;   // lowest foot sits on the ground
+  const J = { pelvis:[0,py,0] };
+  [0,1].forEach(i=>{
+    const s=i?1:-1, L=leg(i), cg=Math.cos(L.g), sg=Math.sin(L.g), sp=L.a-L.b;
+    const hip  = [s*B.HIP, py, 0];
+    const knee = add3(hip,  [s*sg*B.LT, -Math.cos(L.a)*cg*B.LT, Math.sin(L.a)*cg*B.LT]);
+    const ank  = add3(knee, [s*sg*B.LS, -Math.cos(sp)*cg*B.LS,  Math.sin(sp)*cg*B.LS]);
+    J['hip'+i]=hip; J['knee'+i]=knee; J['ank'+i]=ank; J['toe'+i]=add3(ank, [s*.02, -.03-Math.sin(tp(i))*B.FOOT, Math.cos(tp(i))*B.FOOT]);
+  });
+  let up = [Math.sin(roll), Math.cos(lean)*Math.cos(roll), Math.sin(lean)];
+  up = sc3(up, 1/Math.hypot(...up));
+  const side = [Math.cos(roll), -Math.sin(roll), 0];
+  J.base = add3(J.pelvis, sc3(up,.12));   // shirt hem sits over the top of the shorts
+  J.neck = add3(J.pelvis, sc3(up,B.TOR));
+  const nf=q[18]||0, fwd=[0, -Math.sin(lean), Math.cos(lean)];          // fwd: the chest's side, square to the spine
+  J.head = add3(J.neck, sc3(add3(sc3(up, Math.cos(nf)), sc3(fwd, Math.sin(nf))), B.NECK));
+  [0,1].forEach(i=>{
+    const s=i?1:-1, A=arm(i), cb=Math.cos(A.b), sb=Math.sin(A.b), fp=A.a+A.e;
+    const sh = add3(add3(J.neck, sc3(up,-.06)), sc3(side, s*B.SHW));
+    const el = add3(sh, [s*sb*B.LU, -Math.cos(A.a)*cb*B.LU, Math.sin(A.a)*cb*B.LU]);
+    J['sh'+i]=sh; J['el'+i]=el; J['hand'+i]=add3(el, [s*sb*.5*B.LF, -Math.cos(fp)*cb*B.LF, Math.sin(fp)*cb*B.LF]);
+  });
+  const tw=q[19]||0;
+  if(tw){ const M=rotM(up, tw); ['neck','head','sh0','sh1','el0','el1','hand0','hand1'].forEach(k=>{ J[k]=add3(J.pelvis, mulM(M, sub3(J[k], J.pelvis))); }); }
+  const anc=q[17]||0;
+  if(anc){ const kz=(J.knee0[2]+J.knee1[2])/2*anc; for(const k in J) J[k]=[J[k][0], J[k][1], J[k][2]-kz]; }
+  return J;
+}
+
+// Body-frame point → world, for a figure standing at (x, z) turned by yaw
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EXERCISE SCRIPTS (PEP / FIFA 11+ builds)                        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+// EX[name] = { END: script length (s), rate: pose follow speed, state(S, T, f) → { q, x, z, face, yaw, rot,
+//   plant, pinW, sup, handT, armW, grip, ballW, call }, count(S, set) → counter text, guide(cam, f, J, W, push),
+//   arrow(S, f) → [[x,z],[x,z]] }.  S = f.ex: { x0, z0, face0, i (player), opt, go, goT, prog, lag }.
+const EX = {};
+const STAND_H = fkW(pose.stand()).pelvis[1];
+const SQ_FZ = .22;   // how far the hips sit back behind the feet at full depth (callers move the body back by SQ_FZ*w so the feet stay put)
+const ARMS = { side:[.05,.12,.25], back:[-.55,.18,.35], fwd:[1.1,.12,.25], up:[2.3,.1,.15], bal:[.25,.55,.35], ready:[.35,.3,.8] };
+// Both feet planted under the hips, pelvis lowered by w (0 = standing, 1 = 90° at the knee);
+// hips sit back and the chest leans over the feet so the knees stay behind the toes.
+function squatQ(w, o={}){
+  const h=STAND_H - .4*w + (o.rise||0), toe=o.toe||0, ankY=Math.max(B.ANK, .03+Math.sin(toe)*B.FOOT), g=o.g??.07;
+  const [a,b]=legIK((o.fz??0) + SQ_FZ*w, (h-ankY)/Math.cos(g));   // feet SQ_FZ*w ahead of the pelvis (hips sit back)
+  const A=o.arms||ARMS.side, A1=o.arms1||A;
+  return QW(0, (o.lean??.04) + .8*w, 0, [a,b,g],[a,b,g], A, A1, toe, 0, o.neck||0);
+}
+// One leg planted (st), the free leg lifted behind with the knee bent; w as squatQ
+function squat1Q(w, st, o={}){
+  const q=squatQ(w, o), fr=1-st, F=o.free||[.25, 1.35, .05];
+  q[3+fr*3]=F[0] + .5*w; q[4+fr*3]=F[1]; q[5+fr*3]=F[2];
+  if(o.toeSt!=null) q[15+st]=o.toeSt;
+  return q;
+}
+const mixArms = (a,b,k)=>a.map((v,i)=>mix(v, b[i], k));
+// A run of jumps: spots[0] → spots[1] → … (world [x, z]); feet stay planted on the ground, the travel
+// happens in the air. Each jump: ground contact (absorb, optional hold, push off) then flight.
+// C = { G: ground s, AIR: flight s, H: height, DEEP: crouch, HOLD: pause at the bottom, PRE, END, st: one leg (0/1) or null }
+function jumpSeq(T, spots, C, yaw){
+  const n=spots.length-1, G1=C.G1??C.G/2, G2=C.G2??C.G/2, G=G1+G2, HOLD=C.HOLD||0, per=G+HOLD+C.AIR, pre=C.PRE??.5, fw=fwdOf(yaw||0);
+  const stOf = j=>C.st==null ? null : C.stAlt ? (j%2 ? 1-C.st : C.st) : C.st;   // stAlt: land on the other leg each jump
+  let wNow=0, stNow=stOf(0);
+  const Qf = (w, o)=>{ wNow=w; const q = stNow==null ? squatQ(w, o) : squat1Q(w, stNow, o); if(C.lean) q[1]+=C.lean; return q; };
+  const out = (x, z, q, jumps, air)=>({ x:x-fw[0]*SQ_FZ*wNow, z:z-fw[1]*SQ_FZ*wNow, q, jumps, air, st:stNow });   // hips back, feet on the spot
+  const arms = C.arms;                                                  // fixed arms (e.g. hands on hips) or null = swing
+  const A_ = a=>arms || a;
+  if(T<pre){ const k=ease(T/pre); return out(spots[0][0], spots[0][1], Qf(.12*k, { arms:A_(mixArms(ARMS.side, ARMS.ready, k)) }), 0, false); }
+  let u=T-pre;
+  const j=Math.floor(u/per);
+  if(j>=n){   // after the last landing: absorb, then stand up tall again
+    stNow=stOf(n);
+    const v=u-n*per, S=spots[n], dw=C.DEEP*.85;
+    const w = v<G1 ? dw*ease(v/G1) : v<G1+.6 ? dw : dw*(1-ease((v-G1-.6)/.6));
+    const toe = v<G1 ? .5*(1-v/G1) : 0;
+    return out(S[0], S[1], Qf(Math.max(0,w), { arms:A_(ARMS.ready), toe }), n, false);
+  }
+  const v=u-j*per, A=spots[j], Bp=spots[j+1];
+  if(v < G+HOLD){   // on the ground: absorb the landing (or the first dip), hold, push off
+    stNow=stOf(j);
+    const first=j===0;
+    let w, toe, a;
+    if(v<G1){ const k=v/G1; w=mix(first ? .12 : .15, C.DEEP, Math.sin(PI/2*k)); toe=first ? 0 : .5*(1-k); a=mixArms(first ? ARMS.ready : ARMS.fwd, ARMS.back, ease(k)); }
+    else if(v<G1+HOLD){ w=C.DEEP; toe=0; a=HOLD ? ARMS.bal : ARMS.back; }
+    else { const k=(v-G1-HOLD)/G2; w=C.DEEP*(1-ease(k)); toe=.9*ease(k); a=mixArms(HOLD ? ARMS.bal : ARMS.back, ARMS.fwd, ease(k)); }
+    return out(A[0], A[1], Qf(w, { arms:A_(a), toe }), j, false);
+  }
+  stNow=stOf(j+1);
+  const k=(v-G-HOLD)/C.AIR;   // flight: steady travel, parabolic height, knees tuck a little
+  const q=Qf(.12+.18*Math.sin(PI*k), { arms:A_(ARMS.fwd), toe:mix(.9, .5, k) });
+  q[0] = 4*C.H*k*(1-k);
+  return out(mix(A[0], Bp[0], k), mix(A[1], Bp[1], k), q, j, true);
+}
+const jumpEnd = (n, C)=>(C.PRE??.5) + n*((C.G1??C.G/2)+(C.G2??C.G/2)+(C.HOLD||0)+C.AIR) + (C.G1??C.G/2) + 1.3;
+// Highlight beside the knee (never through the body): a short yellow arc out to the side of the knee
+// showing its bend, plus a ring under the foot.
+function kneeArc(cam, f, J, W, push, i){
+  const s=i?1:-1, kn=J['knee'+i], hp=J['hip'+i], an=J['ank'+i], off=[s*.2, 0, 0];
+  const d1=sub3(hp,kn), d2=sub3(an,kn), n1=Math.hypot(...d1)||1, n2=Math.hypot(...d2)||1;
+  const pts=[]; for(let k=0;k<=8;k++){ const v=add3(sc3(d1, (1-k/8)/n1), sc3(d2, (k/8)/n2)), L=Math.hypot(...v)||1; pts.push(W(add3(add3(kn, off), sc3(v, .16/L)))); }
+  for(let k=0;k<8;k++) push(segItem(pts[k], pts[k+1], .028, GUIDE, -.2));
+  push(dotItem(W(add3(kn, off)), .035, GUIDE, -.2));
+  const a=W(an); push(ringItem(cam, [a[0], .01, a[2]+.03], .14, GUIDE));
+}
+const landGuide = (cam, f, J, W, push)=>{ [0,1].forEach(i=>{ if(J['ank'+i][1] < B.ANK+.08) kneeArc(cam, f, J, W, push, i); }); };
+// world → body frame offsets for a figure facing yaw: ahead/side vectors
+const fwdOf = yaw=>[Math.sin(yaw), Math.cos(yaw)], rightOf = yaw=>[Math.cos(yaw), -Math.sin(yaw)];
+const timerText = (S, set, L, label)=>`${label ? label+' · ' : ''}${clamp(Math.floor(S.prog-S.lag), 0, L)} / ${L} s`;
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  FIFA 11+ (ages 12+) — exercise scripts for Parts 1–6            ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const hipsT = (J, i, W)=>{ const s=i?1:-1; return W(add3(J['hip'+i], [s*.07, .07, .02])); };   // hands on the hips
+const rotJq = (q, rot)=>bodyJ({ q, rollRot:rot });
+const spanT = (T, a, b)=>clamp((T-a)/(b-a), 0, 1);
+
+// ── Part 1: the bench (forearm plank) ──
+// Get down as Level 1 (staged: squat, hands down, one foot back then the other, into a straight-arm
+// plank), then lower onto one forearm, then the other. Up is the same in reverse.
+const FP = { L:1.44, DOWN:3.2, FORE:1.4, UP:3.4, LIFT:.32 };
+const fpQ = (r0, r1)=>{ const L=FP.L, leg=r=>[-L-r, .02, .05]; return QW(0, L, 0, leg(r0), leg(r1), [0,.05,0],[0,.05,0], .9, 0, .2); };
+function plankState(S, T, HOLD, liftFn){
+  const fw=fwdOf(S.face0), base={ x:S.x0, z:S.z0 };
+  const fore = (k, lifts)=>({ ...base, q:mixQ(downQ(1), fpQ(...lifts), ease(k)), plant:1,
+    sup:{ w:[sstep(.05, .55, k), sstep(.45, .95, k)], fwd:fw } });
+  if(T<FP.DOWN){ const g=T/FP.DOWN; return { ...base, q:downQ(g), plant:plantW(g) }; }
+  let u=T-FP.DOWN;
+  if(u<FP.FORE) return fore(u/FP.FORE, [0,0]);
+  u-=FP.FORE;
+  if(u<HOLD) return { ...base, q:fpQ(...liftFn(u)), plant:1, sup:{ w:[1,1], fwd:fw } };
+  u-=HOLD;
+  if(u<FP.FORE) return fore(1-u/FP.FORE, [0,0]);
+  u-=FP.FORE;
+  const g=1-clamp(u/FP.UP, 0, 1); return { ...base, q:downQ(g), plant:plantW(g) };
+}
+const plankEnd = HOLD=>FP.DOWN + 2*FP.FORE + HOLD + FP.UP;
+const plankClock = (S, HOLD)=>clamp(S.prog-S.lag-FP.DOWN-FP.FORE, 0, HOLD);
+// lifting a straight leg: up, hold, down (k in seconds since the lift began)
+const legUp = (k, hold)=>FP.LIFT*Math.min(sstep(0, .45, k), 1-sstep(hold+.45, hold+.9, k));
+const plankLine = (cam, f, J, W, push)=>{   // straight line heels → hips → shoulders, drawn just above the body
+  const up=[0,.27,0], pts=[W(add3(lerp3(J.ank0,J.ank1,.5), up)), W(add3(J.pelvis, up)), W(add3(lerp3(J.sh0,J.sh1,.5), up))];
+  for(let k=0;k<2;k++) push(segItem(pts[k], pts[k+1], .025, GUIDE, -.3));
+  pts.forEach(p=>push(dotItem(p, .04, GUIDE, -.31)));
+};
+EX.plankStatic = { rate:30, H:30, get END(){ return plankEnd(this.H); }, guide:plankLine,
+  state(S, T){ return plankState(S, T, this.H, ()=>[0,0]); },
+  count(S, set){ return `Set ${set} · ${Math.floor(plankClock(S, this.H))} / ${this.H} s`; } };
+EX.plankAlt = { rate:30, H:24, CYC:2.9, get END(){ return plankEnd(this.H); }, guide:plankLine,
+  state(S, T){ return plankState(S, T, this.H, u=>{ const n=Math.floor(u/this.CYC), k=u-n*this.CYC, r=legUp(k, 2); return n%2 ? [r,0] : [0,r]; }); },
+  count(S){ const c=plankClock(S, this.H); return `${Math.floor(c)} / 60 s · Lift ${clamp(Math.floor(c/this.CYC)+1, 0, 99)} · ${Math.floor(c/this.CYC)%2 ? 'Left' : 'Right'} leg`; } };
+EX.plankOne = { rate:30, H:46, get END(){ return plankEnd(this.H); }, guide:plankLine,
+  state(S, T){ return plankState(S, T, this.H, u=>{ const r=u<this.H/2 ? legUp(u, this.H/2-1.2) : legUp(u-this.H/2, this.H/2-1.2); return u<this.H/2 ? [0,r] : [r,0]; }); },
+  count(S, set){ const c=plankClock(S, this.H), h=this.H/2; return `${c<h ? 'Right' : 'Left'} leg up · ${Math.floor(c<h ? c : c-h)} s`; } };
+
+// ── Part 2: sideways bench (side plank on the left forearm) ──
+// Built standing, then the whole body is rolled onto its left side (bodyJ) and tilted so the left shoulder
+// sits a forearm's height above the ground; the left forearm is then laid flat under it (f.sup).
+// Get down: kneel, then lean over onto the forearm while the upper leg stretches out.
+const SPK = { SH:.33, KN:1.5, SIDE:1.9, UP:2.8 };
+function spkQ(o){   // o: low = lower-leg knee bend (0 straight, 1 = 90°), sag (hips down), lift (upper leg up)
+  const sag=o.sag||0, d=.28*sag, low=o.low??0;
+  return QW(0, .02, .26*sag, [0, PI/2*low, -d], [.02, .04, d + (o.lift||0)], [0,1.2,.2], [0,.12,.25], [low*.0, 0], 0, 0);
+}
+const SPROT = th=>({ axis:[0,0,1], th, eyes:true, skip:['el0','hand0'] });
+function spkTilt(q){   // roll angle that puts the left shoulder SPK.SH above the ground
+  let lo=.7, hi=1.56;
+  for(let k=0;k<16;k++){ const m=(lo+hi)/2; if(rotJq(q, SPROT(m)).sh0[1] > SPK.SH) lo=m; else hi=m; }
+  return (lo+hi)/2;
+}
+function sidePlankState(S, T, HOLD, shapeFn){
+  const base={ x:S.x0, z:S.z0 }, fw=fwdOf(S.face0), hand=(J, i, W)=>i ? hipsT(J, i, W) : null;
+  const held = shapeFn(0), start=spkQ({ ...held, lift:0, sag:held.sag ?? 0 });
+  const side = k=>{   // 0 = kneeling upright, 1 = in the side plank
+    const q=mixQ(pose.kneel(), start, ease(k)), th=spkTilt(start)*ease(k);
+    return { ...base, q, rot:SPROT(th), sup:{ w:[sstep(.55, .85, k), 0], fwd:fw }, handT:k>.3 ? hand : null };
+  };
+  if(T<SPK.KN) return { ...base, q:mixQ(pose.stand(), pose.kneel(), ease(T/SPK.KN)) };
+  let u=T-SPK.KN;
+  if(u<SPK.SIDE) return side(u/SPK.SIDE);
+  u-=SPK.SIDE;
+  if(u<HOLD){ const q=spkQ(shapeFn(u)); return { ...base, q, rot:SPROT(spkTilt(q)), sup:{ w:[1,0], fwd:fw }, handT:hand }; }
+  u-=HOLD;
+  if(u<SPK.SIDE) return side(1-u/SPK.SIDE);
+  u-=SPK.SIDE;
+  return { ...base, q:mixQ(pose.kneel(), pose.stand(), ease(clamp(u/SPK.KN, 0, 1))) };
+}
+const sideEnd = HOLD=>SPK.KN + 2*SPK.SIDE + HOLD + SPK.KN + .3;
+const sideClock = (S, HOLD)=>clamp(S.prog-S.lag-SPK.KN-SPK.SIDE, 0, HOLD);
+const sideLine = (cam, f, J, W, push)=>{   // straight line feet → hips → shoulders, drawn just in front of the body
+  // lower knee bent (B1): the line runs along the straight upper leg; legs straight: along the lower leg
+  const fr=[0,0,.3], top = J.ank1[1]>J.ank0[1] ? 1 : 0, leg = f.ex && f.ex.name==='sideStatic' ? top : 1-top;
+  const pts=[W(add3(J['ank'+leg], fr)), W(add3(J.pelvis, fr)), W(add3(lerp3(J.sh0,J.sh1,.5), fr))];
+  for(let k=0;k<2;k++) push(segItem(pts[k], pts[k+1], .025, GUIDE, -.6));
+  pts.forEach(p=>push(dotItem(p, .04, GUIDE, -.61)));
+};
+EX.sideStatic = { rate:30, H:30, get END(){ return sideEnd(this.H); }, guide:sideLine,
+  state(S, T){ return sidePlankState(S, T, this.H, ()=>({ low:1 })); },
+  count(S, set){ return `Left side · ${Math.floor(sideClock(S, this.H))} / ${this.H} s`; } };
+EX.sideHips = { rate:30, H:24, CYC:2.4, get END(){ return sideEnd(this.H); }, guide:sideLine,
+  state(S, T){ return sidePlankState(S, T, this.H, u=>({ low:0, sag:.5-.5*Math.cos(TAU*Math.max(0, u)/this.CYC) })); },
+  count(S){ const c=sideClock(S, this.H); return `Left side · ${Math.floor(c)} / 24 s · Raise ${clamp(Math.floor(c/this.CYC), 0, 99)}`; } };
+EX.sideLift = { rate:30, H:24, get END(){ return sideEnd(this.H); }, guide:sideLine,
+  state(S, T){ return sidePlankState(S, T, this.H, u=>({ low:0, lift:.5*Math.min(sstep(.3, 1.3, u), 1-sstep(this.H-1.2, this.H-.2, u)) })); },
+  count(S){ return `Left side · ${Math.floor(sideClock(S, this.H))} / 24 s`; } };
+
+// ── Part 3: Russian hamstrings (pairs: athlete in front, partner kneeling behind holding the legs) ──
+const NHX = { KN:1.8, REP:6, GAP:.65, UP:1.6 };
+function nordicState(S, T, reps){
+  const athlete = S.i%2===0, base={ x:S.x0, z:S.z0 };
+  const athQ = t=>t<NHX.KN ? mixQ(pose.stand(), pose.kneel(), ease(t/NHX.KN))
+    : t<NHX.KN+reps*NHX.REP ? pose.nordic(t-NHX.KN)
+    : mixQ(pose.kneel(), pose.stand(), ease(clamp((t-NHX.KN-reps*NHX.REP-.4)/NHX.UP, 0, 1)));
+  if(athlete) return { ...base, q:athQ(T) };
+  const end=NHX.KN+reps*NHX.REP+.4, k = T<NHX.KN ? ease(T/NHX.KN) : T<end ? 1 : 1-ease(clamp((T-end)/NHX.UP, 0, 1));
+  const fw=fwdOf(S.face0), q=mixQ(pose.stand(), pose.holder(), k), A={ x:S.x0+fw[0]*NHX.GAP, z:S.z0+fw[1]*NHX.GAP, yaw:S.face0 }, Ja=fkW(athQ(T));
+  const grip = k>.6 ? [0,1].map(i=>add3(worldOf(A, lerp3(Ja['knee'+i], Ja['ank'+i], .65)), [0,.07,0])) : null;   // hands on the partner's lower legs
+  return { ...base, q, grip };
+}
+const nordicCount = (S, reps)=>`Rep ${clamp(Math.floor((S.prog-S.lag-NHX.KN)/NHX.REP)+1, 0, reps)} / ${reps}`;
+EX.nordic5  = { rate:16, R:5,  get END(){ return NHX.KN+this.R*NHX.REP+.4+NHX.UP; }, state(S,T){ return nordicState(S, T, this.R); }, count(S){ return nordicCount(S, this.R); } };
+EX.nordic10 = { rate:16, R:10, get END(){ return NHX.KN+this.R*NHX.REP+.4+NHX.UP; }, state(S,T){ return nordicState(S, T, this.R); }, count(S){ return nordicCount(S, this.R); } };
+EX.nordic15 = { rate:16, R:15, get END(){ return NHX.KN+this.R*NHX.REP+.4+NHX.UP; }, state(S,T){ return nordicState(S, T, this.R); }, count(S){ return nordicCount(S, this.R); } };
+const nordicLine = (cam, f, J, W, push)=>{ if(f.ex.i%2) return;   // knees → hips → shoulders → head, drawn just beside the body
+  const off=[.42,0,0], pts=[W(add3(lerp3(J.knee0,J.knee1,.5), off)), W(add3(J.pelvis, off)), W(add3(J.neck, off)), W(add3(J.head, off))];
+  for(let k=0;k<3;k++) push(segItem(pts[k], pts[k+1], .025, GUIDE, -.3));
+  pts.forEach(p=>push(dotItem(p, .04, GUIDE, -.31)));
+};
+['nordic5','nordic10','nordic15'].forEach(k=>{ EX[k].guide=nordicLine; });
+
+// ── Part 4: single-leg stance ──
+EX.holdBall = { rate:20, H:30, get END(){ return .9 + this.H + 1; },
+  state(S, T){
+    const base={ x:S.x0, z:S.z0 }, k=ease(spanT(T, 0, .9)), down=ease(spanT(T, .9+this.H, 1.9+this.H));
+    const c=Math.max(0, T-.9), q=QW(0, .06, 0, [.15, 1.25, .06], [.1, .2, .04], ARMS.side, ARMS.side, [0, 0], 0, .15);   // right leg soft, left foot lifted behind
+    q[2] += .025*Math.sin(T*2.1+S.i*1.7) + .015*Math.sin(T*4.3+S.i);   // small balance corrections the whole time
+    return { ...base, q: down ? mixQ(q, pose.stand(), down) : mixQ(pose.stand(), q, k) };
+  },
+  count(S){ return `Right leg · ${clamp(Math.floor(S.prog-S.lag-.9), 0, this.H)} / ${this.H} s`; },
+  guide:(cam, f, J, W, push)=>kneeArc(cam, f, J, W, push, 1) };
+// ── Part 5: squats ──
+// E1: squat to 90° (knees behind the toes), straighten, rise onto the toes, lower. Hands on the hips.
+const SQT = { DOWN:1.05, UP:.85, TOE:.45, TOP:.3, LOW:.35, N:10 };
+SQT.REP = SQT.DOWN+SQT.UP+SQT.TOE+SQT.TOP+SQT.LOW;
+EX.squatToe = { rate:30, get END(){ return .6 + SQT.N*SQT.REP + .6; },
+  state(S, T){
+    const fw=fwdOf(S.face0), u=Math.max(0, T-.6), n=Math.floor(u/SQT.REP), v = n>=SQT.N ? 0 : u-n*SQT.REP;
+    let w=0, toe=0;
+    if(v<SQT.DOWN) w=ease(v/SQT.DOWN);
+    else if(v<SQT.DOWN+SQT.UP) w=1-ease((v-SQT.DOWN)/SQT.UP);
+    else if(v<SQT.DOWN+SQT.UP+SQT.TOE) toe=1.05*ease((v-SQT.DOWN-SQT.UP)/SQT.TOE);
+    else if(v<SQT.REP-SQT.LOW) toe=1.05;
+    else toe=1.05*(1-ease((v-SQT.REP+SQT.LOW)/SQT.LOW));
+    const rise=Math.sin(toe)*B.FOOT - (B.ANK-.03)*sstep(0,.5,toe);
+    const q=squatQ(w, { toe, rise:Math.max(0, rise), lean:.04 });
+    return { x:S.x0-fw[0]*SQ_FZ*w, z:S.z0-fw[1]*SQ_FZ*w, q, handT:hipsT };
+  },
+  count(S){ return `${clamp(Math.floor(S.prog-S.lag-.6), 0, 30)} / 30 s · Squat ${clamp(Math.floor((S.prog-S.lag-.6-SQT.DOWN)/SQT.REP)+1, 0, SQT.N)}`; },
+  guide:(cam, f, J, W, push)=>{ [0,1].forEach(i=>kneeArc(cam, f, J, W, push, i)); } };
+function lungeQ(lead, w, o={}){
+  const h=o.h ?? mix(.84, .52, w), back=o.toeB ?? 1.05, aB=Math.max(B.ANK, .03+Math.sin(back)*B.FOOT);
+  const zf=o.zf??.42, zb=o.zb??-.5, F=legIK(zf, h-B.ANK-(o.liftF||0)), Bk=legIK(zb, h-aB-(o.liftB||0));
+  const arm=k=>[.55*k, .15, 1.2];                                   // arms swing opposite the legs
+  const L0 = lead ? [...Bk, .07] : [...F, .07], L1 = lead ? [...F, .07] : [...Bk, .07];
+  return QW(0, .06, 0, L0, L1, arm(lead ? 1 : -1), arm(lead ? -1 : 1), lead ? [back, 0] : [0, back]);
+}
+// E2: walking lunges, hands on the hips — step out, lower until the front knee is at 90°, push up and
+// bring the back foot through to the front foot. 10 on each leg.
+const WL = { STEP:.8, OUT:.7, LOW:.55, HOLD:.25, UP:.55, IN:.55, N:20 };
+WL.REP = WL.OUT+WL.LOW+WL.HOLD+WL.UP+WL.IN;
+EX.walkLunge = { rate:30, get END(){ return .4 + WL.N*WL.REP + .5; },
+  state(S, T){
+    const fw=fwdOf(S.face0), at=(s, q)=>({ x:S.x0+fw[0]*s, z:S.z0+fw[1]*s, q, handT:hipsT });
+    const u=Math.max(0, T-.4), n=Math.min(WL.N, Math.floor(u/WL.REP)), s0=n*WL.STEP;
+    if(n>=WL.N) return at(s0, pose.stand());
+    const lead = n%2 ? 0 : 1, v=u-n*WL.REP, half=WL.STEP*.5, hL=mix(.84, .52, 1);
+    if(v<WL.OUT){ const k=v/WL.OUT, e=ease(k), P=s0+half*e;   // step out: the lead foot travels a full step, pelvis half
+      return at(P, lungeQ(lead, 0, { h:mix(STAND_H-.01, .8, e), zf:s0+WL.STEP*e-P, zb:s0-P, toeB:1.05*e, liftF:.1*Math.sin(PI*k) })); }
+    const P=s0+half;
+    if(v<WL.OUT+WL.LOW+WL.HOLD+WL.UP){   // lower to 90°, hold, push back up
+      const k=v-WL.OUT, d = k<WL.LOW ? ease(k/WL.LOW) : k<WL.LOW+WL.HOLD ? 1 : 1-ease((k-WL.LOW-WL.HOLD)/WL.UP);
+      return at(P, lungeQ(lead, 0, { h:mix(.8, hL, d), zf:half, zb:-half })); }
+    const k=(v-WL.OUT-WL.LOW-WL.HOLD-WL.UP)/WL.IN, e=ease(k), P2=P+half*e;   // back foot comes through to the front foot
+    return at(P2, lungeQ(lead, 0, { h:mix(.8, STAND_H-.01, e), zf:s0+WL.STEP-P2, zb:s0+WL.STEP*e-P2, toeB:1.05*(1-e), liftB:.12*Math.sin(PI*k) }));
+  },
+  count(S){ const n=clamp(Math.floor((S.prog-S.lag-.4-WL.OUT-WL.LOW)/WL.REP)+1, 0, WL.N); return `Lunge ${n} / ${WL.N} · ${n%2 ? 'Right' : 'Left'} leg`; },
+  guide:(cam, f, J, W, push)=>{ [0,1].forEach(i=>{ if(J['knee'+i][2] > J.pelvis[2]+.1) kneeArc(cam, f, J, W, push, i); }); } };
+// E3: one-leg squats in pairs, side by side, each with the inside hand on the partner's shoulder.
+const OLS = { DOWN:1.1, UP:.9, REST:.4, N:10 };
+OLS.REP = OLS.DOWN+OLS.UP+OLS.REST;
+EX.oneLegSquat = { rate:30, get END(){ return .9 + OLS.N*OLS.REP + .8; },
+  state(S, T){
+    const fw=fwdOf(S.face0), u=Math.max(0, T-.9), n=Math.floor(u/OLS.REP), v = n>=OLS.N ? OLS.REP : u-n*OLS.REP;
+    const w = .85*(v<OLS.DOWN ? ease(v/OLS.DOWN) : v<OLS.DOWN+OLS.UP ? 1-ease((v-OLS.DOWN)/OLS.UP) : 0);
+    const k=ease(spanT(T, 0, .9)), end=ease(spanT(T, .9+OLS.N*OLS.REP, 1.7+OLS.N*OLS.REP)), lift=k*(1-end);
+    const q=squat1Q(w, 1, { free:[mix(.04,.55,lift), mix(.08,1.0,lift), .05], lean:.06 });
+    const left = S.i%2===0, mine = left ? 1 : 0;                       // inside hand: the left player's right hand
+    const handT=(J, i, W)=>{ if(i!==mine) return null; const P=figs[S.i^1], Jp=fkW(P.q); return worldOf(P, add3(Jp[left ? 'sh0' : 'sh1'], [0, .03, 0])); };
+    return { x:S.x0-fw[0]*SQ_FZ*w, z:S.z0-fw[1]*SQ_FZ*w, q, handT };
+  },
+  count(S){ return `Right leg · Squat ${clamp(Math.floor((S.prog-S.lag-.9-OLS.DOWN)/OLS.REP)+1, 0, OLS.N)} / ${OLS.N}`; },
+  guide:(cam, f, J, W, push)=>kneeArc(cam, f, J, W, push, 1) };
+
+// ── Part 6: jumping ──
+// F1: hands on the hips; slowly bend to 90° and hold 1 s, jump straight up, land softly, stand.
+const VJ = { DOWN:1.0, HOLD:1.0, PUSH:.22, AIR:.46, H:.3, LAND:.35, UP:.6, N:8 };
+VJ.REP = VJ.DOWN+VJ.HOLD+VJ.PUSH+VJ.AIR+VJ.LAND+VJ.UP;
+EX.vjump = { rate:40, get END(){ return .5 + VJ.N*VJ.REP + .5; }, guide:landGuide,
+  state(S, T){
+    const fw=fwdOf(S.face0), u=Math.max(0, T-.5), n=Math.floor(u/VJ.REP), v = n>=VJ.N ? VJ.REP : u-n*VJ.REP;
+    let w=0, toe=0, lift=0, k;
+    if(v<VJ.DOWN) w=ease(v/VJ.DOWN);
+    else if((k=v-VJ.DOWN)<VJ.HOLD) w=1;
+    else if((k-=VJ.HOLD)<VJ.PUSH){ w=1-ease(k/VJ.PUSH); toe=.9*ease(k/VJ.PUSH); }
+    else if((k-=VJ.PUSH)<VJ.AIR){ const a=k/VJ.AIR; w=.1+.12*Math.sin(PI*a); toe=mix(.9,.5,a); lift=4*VJ.H*a*(1-a); }
+    else if((k-=VJ.AIR)<VJ.LAND){ w=.45*Math.sin(PI/2*k/VJ.LAND); toe=.5*(1-k/VJ.LAND); }
+    else { k-=VJ.LAND; w=.45*(1-ease(clamp(k/VJ.UP, 0, 1))); }
+    const q=squatQ(w, { toe }); q[0]=lift;
+    return { x:S.x0-fw[0]*SQ_FZ*w, z:S.z0-fw[1]*SQ_FZ*w, q, handT:hipsT };
+  },
+  count(S){ return `Jump ${clamp(Math.floor((S.prog-S.lag-.5-VJ.DOWN-VJ.HOLD-VJ.PUSH)/VJ.REP)+1, 0, VJ.N)} / ${VJ.N}`; } };
+// F2: lateral jumps from one leg to the other, leaning forward, holding each landing briefly
+const LJ = { G1:.28, G2:.2, HOLD:.3, AIR:.4, H:.16, DEEP:.5, PRE:.8, st:1, stAlt:true, lean:.22, N:26 };
+EX.latJump = { rate:40, get END(){ return jumpEnd(LJ.N, LJ); }, guide:landGuide,
+  state(S, T){ const sp=S.sp || (S.sp=Array.from({ length:LJ.N+1 }, (_,j)=>[S.x0 + (j%2 ? -1.1 : 0), S.z0]));
+    const r=jumpSeq(T, sp, LJ, S.face0); return { x:r.x, z:r.z, q:r.q, handT:hipsT }; },
+  count(S){ return `${clamp(Math.floor(S.prog-S.lag), 0, 30)} / 30 s · Jump ${clamp(Math.floor((S.prog-S.lag-LJ.PRE-LJ.G1-LJ.G2-LJ.HOLD-LJ.AIR)/(LJ.G1+LJ.G2+LJ.HOLD+LJ.AIR))+1, 0, LJ.N)}`; } };
+// F3: box jumps — both feet, side to side, then front to back, then diagonally, as quickly as possible
+const BXJ = { G:.28, AIR:.32, H:.14, DEEP:.42, PRE:.6, D:.5, N:48 };
+EX.boxJump = { rate:40, get END(){ return jumpEnd(BXJ.N, BXJ); }, guide:landGuide,
+  state(S, T){
+    if(!S.sp){ const fw=fwdOf(S.face0), rt=rightOf(S.face0), P=(a,b)=>[S.x0+rt[0]*a+fw[0]*b, S.z0+rt[1]*a+fw[1]*b];
+      const pat=[[BXJ.D,0],[0,BXJ.D],[BXJ.D,BXJ.D]]; S.sp=[P(0,0)];
+      for(let j=1;j<=BXJ.N;j++){ const d=pat[Math.floor((j-1)/4)%3]; S.sp.push(j%2 ? P(d[0], d[1]) : P(0,0)); } }
+    const r=jumpSeq(T, S.sp, BXJ, S.face0); return { x:r.x, z:r.z, q:r.q, handT:hipsT }; },
+  count(S){ const n=clamp(Math.floor((S.prog-S.lag-BXJ.PRE-BXJ.G-BXJ.AIR)/(BXJ.G+BXJ.AIR))+1, 0, BXJ.N), p=Math.floor(Math.max(0,n-1)/4)%3;
+    return `${clamp(Math.floor(S.prog-S.lag), 0, 30)} / 30 s · ${['Side to side','Front to back','Diagonal'][p]}`; },
+  arrow(S, f){ if(!S.sp) return null; const T=S.prog-S.lag, per=BXJ.G+BXJ.AIR, j=Math.floor((T-BXJ.PRE)/per); if(j<0 || j>=BXJ.N) return null;
+    return [S.sp[j], S.sp[j+1]]; } };
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  DRILL — FIFA 11+ Injury Prevention (ages 12+), one level        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+// Same 6 parts at every level (bench, sideways bench, hamstrings, single-leg stance, squats, jumping);
+// the level picks the exercise. Four players in lanes 2 m apart near the goal line of a 9v9 field;
+// partner exercises use two pairs.
+const LEVEL = 3, LV = LEVEL-1, pick = a=>a[LV];
+const YD = .9144;
+const PA_D = 14*YD, PA_X = 18*YD, TOUCH_X = 25*YD, HALF_Z = 37.5*YD, CIRCLE_R = 8*YD, LW = .06;
+const AW = 6*YD, AD = 12*YD;
+const LANES = [-3,-1,1,3];
+const LJX = LANES.map(x=>x+.55);   // lateral jumps: the walk ends on the first landing spot (jumps go between here and 1.1 m left)
+const START = LANES.slice();
+const CONES = [[-AW,0],[AW,0],[-AW,AD],[AW,AD]];
+const COACH_Z = AD + 1.5;
+const FIELD = [
+  quad(-TOUCH_X, -LW, TOUCH_X, LW),
+  quad(-PA_X, PA_D-LW, PA_X, PA_D+LW),
+  quad(-PA_X-LW, 0, -PA_X+LW, PA_D), quad(PA_X-LW, 0, PA_X+LW, PA_D),
+  quad(-TOUCH_X, HALF_Z-LW, TOUCH_X, HALF_Z+LW),
+  quad(-TOUCH_X-LW, 0, -TOUCH_X+LW, HALF_Z+40), quad(TOUCH_X-LW, 0, TOUCH_X+LW, HALF_Z+40)
+];
+for(let i=0;i<64;i++){
+  const a0=i/64*TAU, a1=(i+1)/64*TAU, r0=CIRCLE_R-LW, r1=CIRCLE_R+LW;
+  FIELD.push([[Math.sin(a0)*r0,0,HALF_Z+Math.cos(a0)*r0],[Math.sin(a1)*r0,0,HALF_Z+Math.cos(a1)*r0],
+              [Math.sin(a1)*r1,0,HALF_Z+Math.cos(a1)*r1],[Math.sin(a0)*r1,0,HALF_Z+Math.cos(a0)*r1]]);
+}
+const LABELS = [
+  { text:'12 yds',    cls:'dim',  at:[AW+2.2, 0, AD/2] },
+  { text:'12 yds',    cls:'dim',  at:[0, 0, AD+2] },
+  { text:'Goal line', cls:'name', at:[AW+4, 0, -1.4] }
+];
+const OVERVIEW = { pos:[8, 12, AD+11], look:[0, 0, AD/2-1], f:380, cy:215 };
+
+// Partner games reuse the Physical Fundamentals scripts: throwing on one leg (no ball round the leg)
+// and the balance-pushing game (palms instead of balls, 30 s with three points scored).
+THR.AR = 0; THR.CYC = 2.6; THR.REL = 1.2; THR.N = 12;
+PB.SET = 30; PB.EVENTS.push({ t:22.4, loser:'B' });
+EX.plankAlt.H = 60;
+EX.plankOne.H = 50;
+
+const ROMAN = ['1','2','3','4','5','6'];
+const SECTION = ['The Bench Exercises','Sideways Bench','Hamstrings','Single-Leg Stance','Squats','Jumping'];
+const NAMES = {
+  '1':[['A1 · Static Plank','30 Sec × 3 Sets'], ['A2 · Alternate Legs Plank','60 Seconds'], ['A3 · One Leg Lift and Hold','20–30 Sec Each Leg × 3']],
+  '2':[['B1 · Static Sideways Plank','30 Sec Each Side × 3'], ['B2 · Raise and Lower Hip','20–30 Sec Each Side × 3'], ['B3 · Side Plank with Leg Lift','20–30 Sec Each Side × 3']],
+  '3':[['C1 · Russian Hamstrings','Beginner · 3–5 Reps'], ['C2 · Russian Hamstrings','Intermediate · 7–10 Reps'], ['C3 · Russian Hamstrings','Advanced · 12–15 Reps']],
+  '4':[['D1 · Hold the Ball','30 Sec Each Leg × 2'], ['D2 · Throwing Ball to Partner','30 Sec Each Leg × 2'], ['D3 · Test Your Partner','30 Sec Each Leg × 2']],
+  '5':[['E1 · Squats with Toe Raise','30 Seconds'], ['E2 · Walking Lunges','10 Each Leg × 2'], ['E3 · One Leg Squats','10 Each Leg × 2']],
+  '6':[['F1 · Vertical Jumps','30 Sec × 2 Sets'], ['F2 · Lateral Jumps','30 Sec × 2 Sets'], ['F3 · Box Jumps','30 Sec × 2 Sets']]
+};
+const PARTS = {};
+ROMAN.forEach((k,j)=>{ const [name, time]=NAMES[k][LV];
+  PARTS[k]={ title:`FIFA 11+ Level ${LEVEL} — Part ${k}`, sub:`Ages 12+ · ${SECTION[j]}`, name, time, cones:[] }; });
+const partPlayers = ph=>4;
+const PAIRS = [{ a:0, b:1 }, { a:2, b:3 }];
+const J = 10;
+const FOLLOW = { offset:.3, dist:11, height:2.6, f:300, cy:245 };
+const FRONT = { offset:.2, dist:8.5, height:2.2 };
+const SIDE  = { offset:.75, dist:7.5, height:2.1 };
+const CLOSE = { offset:.45, dist:4.2, height:1.4 };
+const SIDECLOSE = { offset:.95, dist:4.2, height:1.3 };
+const LOWSIDE = { offset:.9, dist:6.8, height:1.5 };                     // floor work: low, from the side and front
+const LOWCLOSE = { offset:1.05, dist:3.6, height:1.0 };
+const NORDIC_CAM = { offset:0, dist:8, height:1.6, f:360, cy:260 };      // with view 1.25: side-on, the body line reads
+const PAIRCAM = { offset:.12, dist:10.5, height:3.4 };
+const PBCAM   = { offset:.15, dist:6.4, height:2.0 };
+const PBCLOSE = { offset:.3,  dist:3.4, height:1.6 };
+const FLOORZ = 3.2;
+const SIDEX = [-3.6, -1.2, 1.2, 3.6];                                  // side plank: the body lies across its spot, head to the left
+const NH_X = [-3.4, 3.4], NH_Z = 3.6;
+const NHP = { xs:[NH_X[0], NH_X[0], NH_X[1], NH_X[1]], zs:[NH_Z, NH_Z-NHX.GAP, NH_Z, NH_Z-NHX.GAP] };   // athletes 0 and 2 in front, partners kneel behind
+const PAIR = { xs:[-4.4,-.9,.9,4.4], zs:[3.5,3.5,7.5,7.5], faces:[PI/2,-PI/2,PI/2,-PI/2] };
+const PAIR5 = { xs:[-1.6-PB.GAP/2, -1.6+PB.GAP/2, 1.6-PB.GAP/2, 1.6+PB.GAP/2], zs:[4,4,4,4], faces:[PI/2,-PI/2,PI/2,-PI/2] };
+const SQP = { xs:[-2.25,-1.4,1.4,2.25], z:4 };                            // one-leg squats: partners side by side
+// fast-forward phase length: the rest of the exercise at that speed (el = seconds already played)
+const ffHold = (name, el, sp)=>Math.max(3, (EX[name].END - el + .4)/sp + .6);
+
+// ── per-level choices ──
+const exA = pick(['plankStatic','plankAlt','plankOne']);
+const exB = pick(['sideStatic','sideHips','sideLift']);
+const exC = pick(['nordic5','nordic10','nordic15']);
+const exE = pick(['squatToe','walkLunge','oneLegSquat']);
+const exF = pick(['vjump','latJump','boxJump']);
+
+const PT1 = [
+  { part:'1', cue:"Area: 12 × 12 yds", labels:true, cam:'overview',
+    desc:"Goal line to 12 yards out on a 9v9 field. Players spread out about 2 metres apart.",
+    xs:LANES, z:FLOORZ, face:0, view:0, idle:'stand', hold:3.4 },
+  { part:'1', cue:"", cam:'follow', follow:FRONT,
+    card:{ k:`FIFA 11+ · Ages 12+ · Level ${LEVEL}`, big:'Injury Prevention', sub:'Do the Dynamic Stretches first.<br>Spend 2–3 weeks on each level before moving up.' },
+    desc:"A physical fundamental programme for the club season. Each exercise has three levels to build towards.",
+    xs:LANES, z:FLOORZ, face:0, view:0, idle:'stand', hold:4.6 },
+  { part:'1', cue:"Into the plank —\nforearms under the shoulders", cam:'follow', ex:exA, reps:1, delay:.3,
+    desc:"Get down onto the forearms, elbows directly under the shoulders, up on the toes.",
+    xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWSIDE, idle:'stand', hold:FP.DOWN+2*FP.FORE },
+  { part:'1', cue:"Body in one straight line —\nhead to heels", cam:'follow', ex:exA, keep:true, reps:1, speed:0, guide:'ex', focus:[3],
+    desc:"Starting position: shoulders, hips and heels in one straight line — no sagging or lifting the hips.",
+    xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWCLOSE, idle:'stand', hold:3.6 },
+  ...pick([
+    [{ part:'1', cue:"Hold — 30 seconds", cam:'follow', ex:exA, keep:true, reps:1, speed:6, ff:true,
+       desc:"Hold the position for 30 seconds, breathing normally.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWSIDE, idle:'stand', hold:ffHold('plankStatic', 5.8, 6) },
+     { part:'1', cue:"", cam:'follow', ex:exA, keep:true,
+       card:{ k:'Repeat', big:'2 more sets', sub:'30 seconds each — 3 sets in all.' },
+       desc:"Hold for 30 seconds and repeat for 3 sets.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWSIDE, idle:'stand', hold:4.2 }],
+    [{ part:'1', cue:"Raise one straight leg —\nhold 2 seconds", cam:'follow', ex:exA, keep:true, reps:1, guide:'ex', focus:[3],
+       desc:"Raise one straight leg and hold it for 2 seconds. The hips stay level and the body stays in line.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWCLOSE, idle:'stand', hold:3.2 },
+     { part:'1', cue:"…switch legs", cam:'follow', ex:exA, keep:true, reps:1, focus:[3],
+       desc:"Lower it, then raise the other leg for 2 seconds.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWCLOSE, idle:'stand', hold:3 },
+     { part:'1', cue:"Keep alternating — 60 seconds", cam:'follow', ex:exA, keep:true, reps:1, speed:8, ff:true,
+       desc:"Continue for 60 seconds.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWSIDE, idle:'stand', hold:ffHold('plankAlt', 12, 8) }],
+    [{ part:'1', cue:"Raise the right leg —\nhold it there", cam:'follow', ex:exA, keep:true, reps:1, guide:'ex', focus:[3],
+       desc:"Raise one leg in extension and hold it for 20–30 seconds, the body in one line.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWCLOSE, idle:'stand', hold:3.4 },
+     { part:'1', cue:"20–30 s — then the left leg", cam:'follow', ex:exA, keep:true, reps:1, speed:7, ff:true,
+       desc:"Lower the leg and repeat on the other side for 20–30 seconds.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWSIDE, idle:'stand', hold:ffHold('plankOne', 9.2, 7) },
+     { part:'1', cue:"", cam:'follow', ex:exA, keep:true,
+       card:{ k:'Repeat', big:'2 more sets', sub:'Each leg in turn — 3 sets in all.' },
+       desc:"Repeat for 3 sets.",
+       xs:LANES, z:FLOORZ, face:0, view:0, follow:LOWSIDE, idle:'stand', hold:4.2 }]
+  ])
+];
+
+const PT2 = [
+  { part:'2', cue:"Lie on the left side —\nforearm under the shoulder", cam:'follow', ex:exB, reps:1, delay:.3,
+    desc:pick(["Lie on the side, lower leg on the ground bent to 90°, the same-side forearm on the ground under the shoulder, the upper hand on the hip.",
+               "Side plank with both legs straight and off the ground: only the forearm and the side of the lower foot touch.",
+               "Side plank with both legs straight: forearm under the shoulder, upper hand on the hip."]),
+    xs:SIDEX, z:FLOORZ, face:0, view:0, follow:FRONT, idle:'stand', hold:SPK.KN+SPK.SIDE+.6 },
+  { part:'2', cue:pick(["Upper leg straight —\nshoulder, hip and foot in line", "Shoulder, hips and feet\nin one line", "Hips up in line —\nupper leg extended"]),
+    cam:'follow', ex:exB, keep:true, reps:1, speed:0, guide:'ex', focus:[2],
+    desc:"Starting position: shoulder, hip and feet in one straight line. The hips do not drop towards the ground.",
+    xs:SIDEX, z:FLOORZ, face:0, view:0, follow:CLOSE, idle:'stand', hold:3.6 },
+  ...pick([
+    [{ part:'2', cue:"Hold — 30 seconds", cam:'follow', ex:exB, keep:true, reps:1, speed:6, ff:true,
+       desc:"Hold the position for 30 seconds.",
+       xs:SIDEX, z:FLOORZ, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('sideStatic', 4, 6) }],
+    [{ part:'2', cue:"Lower the hips…\nand raise them again", cam:'follow', ex:exB, keep:true, reps:1, focus:[2],
+       desc:"Lower the hips towards the ground, then raise them away from the ground again — slowly and controlled.",
+       xs:SIDEX, z:FLOORZ, face:0, view:0, follow:CLOSE, idle:'stand', hold:5 },
+     { part:'2', cue:"20–30 seconds", cam:'follow', ex:exB, keep:true, reps:1, speed:5, ff:true,
+       desc:"Keep raising and lowering for 20–30 seconds.",
+       xs:SIDEX, z:FLOORZ, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('sideHips', 9, 5) }],
+    [{ part:'2', cue:"Lift the upper leg —\nhold it straight", cam:'follow', ex:exB, keep:true, reps:1, guide:'ex', focus:[2],
+       desc:"Raise the upper leg and hold it, the hips staying up in line with the extended leg.",
+       xs:SIDEX, z:FLOORZ, face:0, view:0, follow:CLOSE, idle:'stand', hold:3.6 },
+     { part:'2', cue:"Hold 20–30 seconds", cam:'follow', ex:exB, keep:true, reps:1, speed:5, ff:true,
+       desc:"Hold for 20–30 seconds, then lower.",
+       xs:SIDEX, z:FLOORZ, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('sideLift', 7.6, 5) }]
+  ]),
+  { part:'2', cue:"", cam:'follow', ex:exB, keep:true,
+    card:{ k:'Other side', big:'Right side', sub:'Same again on the right side —<br>3 sets on each side.' },
+    desc:"Repeat on the other side, 3 sets each side.",
+    xs:SIDEX, z:FLOORZ, face:0, view:0, follow:FRONT, idle:'stand', hold:4.4 }
+];
+
+const PT3 = [
+  { part:'3', cue:"Pairs — kneel, upper body upright;\npartner holds both legs", cam:'follow', ex:exC, reps:1, delay:.3, lag:0,
+    desc:"Both knees on the ground, upper body upright. The partner kneels behind and holds both lower legs firmly to the ground.",
+    ...NHP, face:0, view:1.25, follow:NORDIC_CAM, idle:'stand', hold:NHX.KN+.6 },
+  { part:'3', cue:"Lower slowly —\nno bend at the waist", cam:'follow', ex:exC, keep:true, reps:1, guide:'ex', focus:[0,1],
+    desc:"Slowly lean forward, keeping the body in one straight line from the knees to the head — never bend at the waist.",
+    ...NHP, face:0, view:1.25, follow:{ offset:0, dist:5, height:1.3, f:360, cy:260 }, idle:'stand', hold:3.6 },
+  { part:'3', cue:"Hold as long as possible —\nthen back up", cam:'follow', ex:exC, keep:true, reps:1, focus:[0,1],
+    desc:"Hold as long as you can, then come back up slowly. If the body can no longer be held, lower down towards a push-up position on the hands.",
+    ...NHP, face:0, view:1.25, follow:{ offset:0, dist:5, height:1.3, f:360, cy:260 }, idle:'stand', hold:2.6 },
+  { part:'3', cue:pick(["3–5 reps", "7–10 reps", "12–15 reps"]), cam:'follow', ex:exC, keep:true, reps:1, speed:pick([4,6,8]), ff:true,
+    desc:pick(["Beginner: repeat 3–5 times.", "Intermediate: repeat 7–10 times.", "Advanced: repeat 12–15 times."]),
+    ...NHP, face:0, view:1.25, follow:NORDIC_CAM, idle:'stand', hold:ffHold(exC, 8, pick([4,6,8])) },
+  { part:'3', cue:"", cam:'follow', ex:exC, keep:true,
+    card:{ k:'Switch', big:'Swap with the partner', sub:'The partner now does the reps<br>while you hold the legs.' },
+    desc:"Then switch with the partner.",
+    ...NHP, face:0, view:1.25, follow:NORDIC_CAM, idle:'stand', hold:4.4 }
+];
+
+const PT4 = pick([
+  [{ part:'4', ball:true, holdBall:true, cue:"Stand on the right leg —\nball held in front", cam:'follow', ex:'holdBall', reps:1, delay:.3,
+     desc:"Stand on one leg holding the ball in front of you with both hands. Supporting knee slightly bent.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:3.4 },
+   { part:'4', ball:true, holdBall:true, cue:"Knee over the foot —\nhips level", cam:'follow', ex:'holdBall', keep:true, reps:1, guide:'ex', focus:[1],
+     desc:"Keep the supporting knee slightly bent and over the foot, hips level. Don't let the knee buckle inwards.",
+     xs:LANES, z:4, face:0, view:0, follow:{ offset:.12, dist:4.4, height:1.5 }, idle:'stand', hold:4 },
+   { part:'4', ball:true, holdBall:true, cue:"Balance — 30 seconds", cam:'follow', ex:'holdBall', keep:true, reps:1, speed:6, ff:true,
+     desc:"Balance for 30 seconds.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('holdBall', 7.4, 6) },
+   { part:'4', ball:true, holdBall:true, cue:"", cam:'follow', ex:'holdBall', keep:true,
+     card:{ k:'Swap legs', big:'Left leg', sub:'30 seconds on the other leg — 2 sets each leg.<br>Harder: move the ball round the waist or under the knee, or raise the heel.' },
+     desc:"Repeat on the other leg, 2 sets on each leg.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:5 }],
+  [{ part:'4', cue:"Pairs facing each other —\non the right leg", cam:'follow', thr:{ st:1 }, ball:true, rate:6,
+     desc:"Partners face each other, each standing on one leg. One partner starts with the ball.",
+     ...PAIR, z:0, view:0, follow:PAIRCAM, idle:'stand', hold:3.2 },
+   { part:'4', cue:"Throw to the partner", cam:'follow', thr:{ st:1, go:true }, ball:true, reps:1, keep:true, delay:.3, focus:[2,3],
+     desc:"Throw the ball to the partner, who catches it while staying on one leg.",
+     ...PAIR, z:0, view:0, follow:{ offset:.25, dist:6.2, height:1.9 }, idle:'stand', hold:3 },
+   { part:'4', cue:"Catch — stay on one leg,\nknee soft", cam:'follow', thr:{ st:1, go:true }, ball:true, reps:1, keep:true, focus:[2,3],
+     desc:"Keep the free foot off the ground: hip, knee and ankle in line over the supporting foot.",
+     ...PAIR, z:0, view:0, follow:{ offset:.25, dist:6.2, height:1.9 }, idle:'stand', hold:2.8 },
+   { part:'4', cue:"Keep throwing — 30 seconds", cam:'follow', thr:{ st:1, go:true }, ball:true, reps:1, keep:true, speed:5, ff:true,
+     desc:"Throw back and forth for 30 seconds.",
+     ...PAIR, z:0, view:0, follow:PAIRCAM, idle:'stand', hold:5.6 },
+   { part:'4', cue:"", cam:'follow', thr:{ st:1, go:true }, ball:true, keep:true,
+     card:{ k:'Swap legs', big:'Left leg', sub:'30 seconds on the other leg — 2 sets each leg.<br>Harder: raise the heel of the supporting foot.' },
+     desc:"Switch legs and repeat for 30 seconds. 2 sets on each leg.",
+     ...PAIR, z:0, view:0, follow:PAIRCAM, idle:'stand', hold:5 }],
+  [{ part:'4', cue:"Arm’s length apart —\nsame leg down for both", labels:false, cam:'follow', pb:{ st:1, palms:true }, rate:6,
+     desc:"Partners stand on one leg, an arm’s length apart. The same side is on the ground for each partner.",
+     ...PAIR5, z:0, view:0, follow:PBCAM, idle:'stand', hold:3.2 },
+   { part:'4', cue:"Push the partner off balance —\nin different directions", cam:'follow', pb:{ st:1, palms:true, go:true }, reps:1, keep:true, delay:.3, focus:[2,3],
+     desc:"Take turns trying to push the partner off balance, in different directions.",
+     ...PAIR5, z:0, view:0, follow:PBCLOSE, idle:'stand', hold:5.4 },
+   { part:'4', cue:"Foot touches down?\nStart again", cam:'follow', pb:{ st:1, palms:true, go:true }, reps:1, keep:true, focus:[2,3],
+     desc:"Stay on one leg, knee soft over the foot. If the raised foot touches down, reset and go again.",
+     ...PAIR5, z:0, view:0, follow:PBCLOSE, idle:'stand', hold:4.4 },
+   { part:'4', cue:"30 seconds", cam:'follow', pb:{ st:1, palms:true, go:true }, reps:1, keep:true, speed:4, ff:true,
+     desc:"Keep going for 30 seconds.",
+     ...PAIR5, z:0, view:0, follow:PBCAM, idle:'stand', hold:5.6 },
+   { part:'4', cue:"", cam:'follow', pb:{ st:1, palms:true, go:true }, keep:true,
+     card:{ k:'Swap legs', big:'Left leg', sub:'30 seconds on the other leg —<br>2 sets on each leg.' },
+     desc:"Repeat on the other leg. 2 sets on each leg.",
+     ...PAIR5, z:0, view:0, follow:PBCAM, idle:'stand', hold:4.6 }]
+]);
+
+const PT5 = pick([
+  [{ part:'5', cue:"Feet apart, hands on the hips", cam:'follow', ex:exE, reps:1, speed:0,
+     desc:"Stand with the feet apart, hands on the hips, a slight bend at the knees.",
+     xs:LANES, z:4, face:0, view:0, follow:SIDE, idle:'stand', hold:3 },
+   // stopAt: the script holds there (squat held at 90° with the guides on, time to read the technique)
+   { part:'5', cue:"Squat to 90° —\nknees behind the toes", cam:'follow', ex:exE, keep:true, reps:1, guide:'ex', focus:[3], stopAt:.6+SQT.DOWN,
+     desc:"Squat to 90 degrees, making sure the knees don't go beyond the toes. Hips back, chest forward.",
+     say:"Squat down to 90 degrees. The knees stay behind the toes. Hips back, chest forward.",
+     xs:LANES, z:4, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:7.5 },
+   { part:'5', cue:"Straighten up —\nonto the toes", cam:'follow', ex:exE, keep:true, reps:1, focus:[3], stopAt:.6+SQT.REP,
+     desc:"Straighten to upright, a slight bend at the knee, and rise onto the toes. Then lower the heels.",
+     xs:LANES, z:4, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:2.6 },
+   { part:'5', cue:"",cam:'follow', ex:exE, keep:true, reps:1, focus:[3], stopAt:.6+3*SQT.REP,
+     desc:"", say:"",
+     xs:LANES, z:4, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:2*SQT.REP+.6 },
+   { part:'5', cue:"Repeat — 30 seconds", cam:'follow', ex:exE, keep:true, reps:1, speed:4, ff:true,
+     desc:"Repeat for 30 seconds.",
+     xs:LANES, z:4, face:0, view:0, follow:SIDE, idle:'stand', hold:ffHold('squatToe', .6+3*SQT.REP, 4) }],
+  [{ part:'5', cue:"Feet hip-width apart,\nhands on the hips", cam:'follow', ex:exE, reps:1, speed:0,
+     desc:"Stand with the feet hip-width apart and the hands on the hips.",
+     xs:LANES, z:1, face:0, view:0, follow:SIDE, idle:'stand', hold:3 },
+   // as Level 1: held at the bottom of the first lunge with the guides on, then two more at normal speed
+   { part:'5', cue:"Lunge forward —\nfront knee to 90°", cam:'follow', ex:exE, keep:true, reps:1, guide:'ex', focus:[3], stopAt:.4+WL.OUT+WL.LOW,
+     desc:"Lunge forward at an even pace until the leading knee is at 90 degrees. The front knee does not go past the toes.",
+     xs:LANES, z:1, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:7.5 },
+   { part:'5', cue:"Step through —\nlunge on the other leg", cam:'follow', ex:exE, keep:true, reps:1, guide:'ex', focus:[3], stopAt:.4+2*WL.REP,
+     desc:"Push up, bring the back foot through and lunge on the other leg. Upper body upright, hips level.",
+     xs:LANES, z:1, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:4.5 },
+   { part:'5', cue:"", cam:'follow', ex:exE, keep:true, reps:1, focus:[3], stopAt:.4+3*WL.REP,
+     desc:"", say:"",
+     xs:LANES, z:1, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:WL.REP+.5 },
+   { part:'5', cue:"10 on each leg", cam:'follow', ex:exE, keep:true, reps:1, speed:5, ff:true,
+     desc:"Repeat 10 times on each leg.",
+     xs:LANES, z:1, face:0, view:0, follow:SIDE, idle:'stand', hold:ffHold('walkLunge', .4+3*WL.REP, 5) },
+   { part:'5', cue:"", cam:'follow', ex:exE, keep:true,
+     card:{ k:'Repeat', big:'2 sets', sub:'Then a second set —<br>10 more on each leg.' },
+     desc:"Repeat for 2 sets.",
+     xs:LANES, z:1, face:0, view:0, follow:SIDE, idle:'stand', hold:4.2 }],
+  [{ part:'5', cue:"Pairs side by side —\nhand on the partner’s shoulder", cam:'follow', ex:exE, reps:1, delay:.2, lag:0, stopAt:.9,
+     desc:"Partners stand side by side, each with the inside hand on the partner's shoulder, on one leg.",
+     ...SQP, face:0, view:0, follow:FRONT, idle:'stand', hold:2.6 },
+   // as Level 1: held at the bottom of the first squat with the guides on, then two more at normal speed
+   { part:'5', cue:"Bend to 90° on one leg —\nknee over the foot", cam:'follow', ex:exE, keep:true, reps:1, guide:'ex', focus:[0,1], stopAt:.9+OLS.DOWN,
+     desc:"Slowly bend the supporting knee to 90 degrees, the knee in line over the foot — never buckling inwards — then straighten back up.",
+     ...SQP, face:0, view:0, follow:CLOSE, idle:'stand', hold:7.5 },
+   { part:'5', cue:"Straighten back up", cam:'follow', ex:exE, keep:true, reps:1, focus:[0,1], stopAt:.9+OLS.REP,
+     desc:"Straighten back up, staying on the one leg.",
+     ...SQP, face:0, view:0, follow:CLOSE, idle:'stand', hold:2 },
+   { part:'5', cue:"", cam:'follow', ex:exE, keep:true, reps:1, focus:[0,1], stopAt:.9+3*OLS.REP,
+     desc:"", say:"",
+     ...SQP, face:0, view:0, follow:CLOSE, idle:'stand', hold:2*OLS.REP+.4 },
+   { part:'5', cue:"10 times", cam:'follow', ex:exE, keep:true, reps:1, speed:4, ff:true,
+     desc:"Repeat 10 times.",
+     ...SQP, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('oneLegSquat', .9+3*OLS.REP, 4) },
+   { part:'5', cue:"", cam:'follow', ex:exE, keep:true,
+     card:{ k:'Swap legs', big:'Left leg', sub:'10 on the other leg —<br>2 sets on each leg.' },
+     desc:"Then repeat on the other leg. 2 sets on each leg.",
+     ...SQP, face:0, view:0, follow:FRONT, idle:'stand', hold:4.4 }]
+]);
+
+const PT6 = pick([
+  [{ part:'6', cue:"Feet hip-width apart,\nhands on the hips", cam:'follow', ex:exF, reps:1, speed:0,
+     desc:"Stand with the feet hip-width apart and the hands on the hips.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:2.8 },
+   { part:'6', cue:"Bend slowly to 90° —\nhold 1 second", cam:'follow', ex:exF, keep:true, reps:1, guide:'ex', focus:[3],
+     desc:"Slowly bend the knees and hips until the knees are at 90 degrees, and hold for 1 second.",
+     xs:LANES, z:4, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:2.6 },
+   { part:'6', cue:"Jump straight up —\nland softly, knees bent", cam:'follow', ex:exF, keep:true, reps:1, guide:'ex', focus:[3],
+     desc:"Jump straight up, landing softly on both feet with a slight bend at the knees.",
+     xs:LANES, z:4, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:2.2 },
+   { part:'6', cue:"Repeat — 30 seconds", cam:'follow', ex:exF, keep:true, reps:1, speed:4, ff:true,
+     desc:"Repeat for 30 seconds.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('vjump', 5.6, 4) }],
+  [{ part:'6', cue:"On one leg —\nlean forward, knee bent", cam:'follow', ex:exF, reps:1, speed:0, delay:.0,
+     desc:"Stand on one leg, leaning slightly forward with a bend at the knee, hands on the hips.",
+     xs:LJX, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:2.8 },
+   { part:'6', cue:"Jump across onto the other leg —\nhold the landing", cam:'follow', ex:exF, keep:true, reps:1, guide:'ex', focus:[1],
+     desc:"Jump sideways onto the other leg, landing with a slight bend at the knee. Hold the balance on landing.",
+     xs:LJX, z:4, face:0, view:0, follow:CLOSE, idle:'stand', hold:4 },
+   { part:'6', cue:"Quickly — 30 seconds", cam:'follow', ex:exF, keep:true, reps:1, speed:4, ff:true,
+     desc:"Repeat quickly, focusing on the balance at each landing, for 30 seconds.",
+     xs:LJX, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('latJump', 4, 4) }],
+  [{ part:'6', cue:"Feet hip-width apart,\nslight bend at the knee", cam:'follow', ex:exF, reps:1, speed:0,
+     desc:"Imagine a cross on the ground. Feet hip-width apart, a slight bend at the knee, hands on the hips.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:2.8 },
+   { part:'6', cue:"Side to side…", cam:'follow', ex:exF, keep:true, reps:1, guide:'ex', focus:[1],
+     desc:"Jump with both feet side to side…",
+     xs:LANES, z:4, face:0, view:0, follow:CLOSE, idle:'stand', hold:2.6 },
+   { part:'6', cue:"…front to back…", cam:'follow', ex:exF, keep:true, reps:1, guide:'ex', focus:[1],
+     desc:"…then front to back…",
+     xs:LANES, z:4, face:0, view:0, follow:SIDECLOSE, idle:'stand', hold:2.5 },
+   { part:'6', cue:"…then diagonally", cam:'follow', ex:exF, keep:true, reps:1, guide:'ex', focus:[1],
+     desc:"…and then diagonally. Land softly on the balls of the feet, knees bent.",
+     xs:LANES, z:4, face:0, view:0, follow:CLOSE, idle:'stand', hold:2.5 },
+   { part:'6', cue:"As quickly as possible —\n30 seconds", cam:'follow', ex:exF, keep:true, reps:1, speed:3, ff:true,
+     desc:"Repeat for 30 seconds as quickly as possible.",
+     xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:ffHold('boxJump', 8.4, 3) }]
+]);
+PT6.push({ part:'6', cue:"", cam:'follow', ex:exF, keep:true,
+  card:{ k:`FIFA 11+ · Level ${LEVEL}`, big:'Complete', sub:pick(['Next: Level 2 after 2–3 weeks.', 'Next: Level 3 after 2–3 weeks.', 'Keep Level 3 going as a maintenance programme.']) },
+  desc:`Level ${LEVEL} complete: bench, sideways bench, hamstrings, single-leg stance, squats, jumping.`,
+  xs:LANES, z:4, face:0, view:0, follow:FRONT, idle:'stand', hold:4.8 });
+
+const phases = [...PT1, ...PT2, ...PT3, ...PT4, ...PT5, ...PT6];
+
+
+const cam = { cx:180, cy:250, f:300, yaw:0, pitch:0, pos:[0,0,0], blend:0, blendTarget:0,
+  follow:  { offset:.3, dist:11, height:2.6, lookY:.9, f:300, cy:245, heading:0, headingTarget:0, mx:0, mz:0, fixX:0, target:{} },
+  overview:OVERVIEW };
+// Players: the engine's figure with the warm-up running style. Each has their own cadence, gait phase,
+// standing sway and pace through a change of pose, so the group never moves in lockstep.
+function wuFig(team, x, z, yaw, i){
+  return { team, role:'wu', x, z, yaw, face:yaw, idle:'stand', style:'jog', headTurn:0, headTarget:0, neck:.12,
+           gait:Math.random(), cad:.94+.12*Math.random(), ph:i*1.37, pace:.92+.16*Math.random(),
+           vx:0, vz:0, turnV:0, q:Q20(pose.stand()), qFrom:null, tw:1, mode:'gait', lift:0, mv:null };
+}
+figs = START.map((x,i)=>wuFig('red', x, 0, 0, i));
+figs.push(Object.assign(wuFig('red', -7.5, 3.5, PI/2, 4), { hidden:true }));   // 5th player waits off the area
+const shown = ()=>figs.filter(f=>!f.hidden);
+const coach = wuFig('coach', 0, COACH_Z, PI, 5);
+coach.rate = 10;
+const pool = makePool('pool', 260);
+const shadows = makeShadows('shadows', figs.length+1+PAIRS.length);   // then the coach's, then one per ball
+const ballShadows = makeShadows('shadows', figs.length);              // each player's own ball
+const callEl = document.getElementById('call');
+const labelEls = LABELS.map(L=>{
+  const el=document.createElementNS(SVGNS,'text');
+  el.setAttribute('class', L.cls); el.textContent=L.text;
+  document.getElementById('labels').appendChild(el);
+  return el;
+});
+let guideOn = false, repsOn = 0, coachOn = false, ballsOn = false;
+const camFigs = ph=>ph.focus ? ph.focus.map(i=>figs[i]) : shown();
+
+// ── Per-frame body ──
+// Staged change of pose: legs lead, the torso follows, arms last — and the two legs don't move in
+// unison — so getting down or standing up reads as a person, not a blend.
+// Offsets (fraction of the change) per pose slot: lift, lean, roll | legL | legR | armL | armR | toes | anchor | neck | twist
+const STAGE = [.12,.18,.12, 0,0,0, .22,.22,.22, .3,.3,.3, .34,.34,.34, .1,.1, 0, .25, .25];
+const stagedMix = (a, b, k)=>a.map((v,i)=>{ const o=STAGE[i]||0; return mix(v, b[i], ease(clamp((k-o)/(1-o), 0, 1))); });
+// Walking, jogging, turning and standing: the engine gait — planted feet move back under the body at its
+// own speed, so they never slide; turning on the spot, the feet step round with the body.
+// Starting and stopping (below ~0.6 m/s) the engine gait takes shorter, slower steps and a planted foot
+// drifts back slower than the body moves: feed it the speed whose steps carry the feet back at the body's
+// real speed, so the short walks between exercise spots don't skate.
+const gaitG = x=>x*sstep(.08, .6, x);
+function stepSpeed(sp){ if(sp>=.6 || sp<=0) return sp; let lo=sp, hi=.6; for(let k=0;k<14;k++){ const m=(lo+hi)/2; if(gaitG(m)<sp) lo=m; else hi=m; } return hi; }
+function gaitPose(f, t, dt){
+  const s=Math.sin(f.yaw), c=Math.cos(f.yaw), sp=Math.hypot(f.vx, f.vz), n=sp||1;
+  const lx=(f.vx*c - f.vz*s)/n, lz=(f.vx*s + f.vz*c)/n;
+  // turning on the spot the feet step round with the body (stepIn); one continuous blend between stepping
+  // round and walking off, so the feet never jump from one to the other
+  const stepIn = sp<.6 ? Math.min(1.1, (f.turnV||0)*.45) : 0;
+  const sT = Math.max(stepSpeed(sp), stepIn), w = sT>0 ? Math.min(1, sp/Math.max(1e-6, gaitG(sT))) : 0;
+  const q = gaitQ(f, lx*w, lz*w, sT, dt, t), back=Math.max(0, -lz)*sstep(.3,1,sp);
+  if(back>0){ q[15]=Math.max(q[15], .55*back); q[16]=Math.max(q[16], .55*back); }   // backwards: up on the toes
+  return Q20(q);
+}
+// f.mv: a walk to the next exercise spot — ~0.6 s to get going, steady, ~0.6 s to stop
+function walkAt(m, t){
+  const k=clamp((t-m.t0)/m.dur, 0, 1), p=Math.min(.45, .6/m.dur), v=1/(1-p);
+  const e = k<p ? v*k*k/(2*p) : k<1-p ? v*(k-p/2) : 1 - v*(1-k)*(1-k)/(2*p);
+  return [mix(m.from[0], m.to[0], e), mix(m.from[1], m.to[1], e)];
+}
+function wuUpdate(f, t, dt){
+  let nx=f.x, nz=f.z, exR=null;
+  f.rollRot=null; f.customJ=null;
+  // a walk starts once the player has settled out of the exercise into the standing stance and, for a
+  // longer walk, turned towards it (the start waits until the body faces the way to go)
+  if(f.mv && !f.mv.on){ const wd=Math.atan2(f.mv.to[0]-f.mv.from[0], f.mv.to[1]-f.mv.from[1]);
+    const ready = f.mode==='gait' && f.tw>=1 && !(f.mv.turn && Math.abs(wrap(wd-f.yaw))>.45);
+    if(!ready) f.mv.t0=Math.max(f.mv.t0, t); else f.mv.on=true; }
+  const walking = f.mv && t<f.mv.t0+f.mv.dur;
+  if(f.mv) [nx, nz] = walkAt(f.mv, t);
+  if(f.ex && !f.ex.walk){
+    // Exercise script: EX[name].state sets position, pose and contacts
+    const S=f.ex, E=EX[S.name];
+    // S.stop (phase stopAt): the script holds at that point until a later phase moves it on
+    const cap = S.stop!=null && S.prog <= S.stop + S.lag + 1e-6 ? S.stop + S.lag : E.END + S.lag + .5;
+    if(t>=S.t0) S.prog = Math.min(S.prog + dt*S.speed, cap);
+    exR = E.state(S, Math.max(0, S.prog - S.lag), f);
+    if(exR.x!=null) nx=exR.x;
+    if(exR.z!=null) nz=exR.z;
+    if(exR.face!=null) f.face=exR.face;
+    f.rollRot=exR.rot||null; f.plant=exR.plant||0; f.pinW=exR.pinW||null; f.armW=exR.armW||null;
+    f.handT=exR.handT||null; f.sup=exR.sup||null; f.grip=exR.grip||null; f.customJ=exR.J||null;
+    if('ballW' in exR) f.ballW=exR.ballW;
+  } else if(f.ex || walking){ f.plant=0; f.pinW=null; f.handT=null; f.sup=null; f.grip=null; f.armW=null; }
+  const vx=(nx-f.x)/dt, vz=(nz-f.z)/dt, kv=Math.min(1, dt*12);
+  f.x=nx; f.z=nz; f.vx=mix(f.vx, vx, kv); f.vz=mix(f.vz, vz, kv);
+  const sp=Math.hypot(f.vx, f.vz);
+  // facing: along a longer walk, then round to the exercise's facing; never while on the knees
+  const ty = f.mv && f.mv.turn && (walking || t<f.mv.t0) && (f.mv.on || (f.mode==='gait' && f.tw>=1)) ? Math.atan2(f.mv.to[0]-f.mv.from[0], f.mv.to[1]-f.mv.from[1]) : f.face;
+  const kn=1-clamp(f.q[17]||0, 0, 1), TR=(walking ? 3 : 2)*f.pace;   // turn rate cap (rad/s): the feet step round, they don't skid
+  const dy=exR && exR.yaw!=null ? wrap(exR.yaw-f.yaw) : clamp(wrap(ty-f.yaw)*Math.min(1, dt*(walking ? 7 : 4.5)*kn*kn), -TR*dt, TR*dt);
+  f.yaw += dy; f.turnV = dt>0 ? mix(f.turnV||0, Math.abs(dy)/dt, Math.min(1, dt*10)) : 0;
+  f.headTurn += (f.headTarget-f.headTurn)*Math.min(1, dt*8);
+  // walked in and turned to face the right way: the exercise (or partner game) starts
+  if(f.ex && f.ex.walk && !walking && sp<.25 && Math.abs(wrap(f.ex.face0-f.yaw))<.1){ f.ex.walk=false; f.ex.t0=Math.max(f.ex.t0, t); f.mv=null; }
+  const gameOn = f.poseFn && !walking && sp<.25 && Math.abs(wrap(f.face-f.yaw))<.1;
+  if(f.mv && !walking && !f.ex) f.mv=null;
+
+  let target, mode;
+  if(exR && exR.q){ target=Q20(exR.q); mode='ex'; }
+  else if(gameOn){ if(!f.fnOn){ f.fnOn=true; const G=f.thr||f.pb; if(G) G.t0=Math.max(G.t0, t); } target=Q20(f.poseFn(f, t, dt)); mode='fn'; }
+  else { target=gaitPose(f, t, dt); mode='gait'; }
+  // ball held in both hands in front of the body the whole time
+  if(f.holdBall){ target=target.slice(); const A=[.5, -.18, 1.15]; for(let i=0;i<3;i++){ target[9+i]=A[i]; target[12+i]=A[i]; } }
+  // ball balanced on one outstretched hand (arm out to the side, palm up), a small wobble while it balances
+  if(f.oneHand!=null){ target=target.slice(); const k=f.oneHand, wob=.04*Math.sin(t*5.3+k);
+    target[9+k*3]=.65+wob; target[10+k*3]=1.15-wob; target[11+k*3]=.25; }
+
+  if(mode!==f.mode){ f.qFrom=f.q.slice(); f.tw=0; f.mode=mode; f.twDur=(f.rate ? 3/f.rate : .45)*f.pace; }
+  // the exercise scripts and partner games keep their own follow rate (keeps up when fast-forwarded)
+  const r = mode==='ex' ? 1-Math.exp(-dt*(EX[f.ex.name].rate||30)*Math.max(1, f.ex.speed))
+          : mode==='fn' ? 1-Math.exp(-dt*(f.thr && f.thr.go ? 24*f.thr.speed : f.pb ? 20*f.pb.speed : f.rate||16)) : 1;
+  if(f.tw<1){
+    const sp2 = mode==='ex' ? Math.max(1, f.ex.speed) : 1;
+    f.tw=Math.min(1, f.tw+dt*sp2/f.twDur);
+    f.q=stagedMix(f.qFrom, target, f.tw);
+    if(f.tw>=1) f.qS=f.q.slice();
+  } else if(r<1){ for(let i=0;i<f.q.length;i++) f.q[i] += (target[i]-f.q[i])*r; }
+  else f.q=target;
+  f.lift=f.q[0];
+}
+function snapFigW(f){ f.vx=f.vz=0; f.turnV=0; f.mode='gait'; f.tw=1; f.q=gaitPose(f, 0, 0); }
+
+function applyScene(idx, t, snap){
+  const ph=phases[idx];
+  guideOn = ph.guide||false;
+  coachOn = !!PARTS[ph.part].coach;
+  if(coachOn){ const at=PARTS[ph.part].coachAt||[0, COACH_Z]; coach.x=at[0]; coach.z=at[1]; coach.mv=null; }   // coach's spot for this part
+  ballsOn = !!ph.ball;
+  document.getElementById('ff').textContent = `⏩ ${ph.speed||3}× speed`;
+  cam.follow.fixX = ph.focus ? null : 0;   // focus: centre the camera on those players
+  const lab=document.getElementById('labels');
+  if(ph.labels) retrigger(lab,'show'); else lab.classList.remove('show');
+  document.getElementById('ff').classList.toggle('show', !!ph.ff);
+  document.getElementById('reps').classList.toggle('show', !!ph.reps);
+  repsOn = ph.reps||0;
+  cam.follow.headingTarget = ph.view;
+  cam.follow.target = { ...FOLLOW, ...(ph.follow||{}) };
+  cam.blendTarget = ph.cam==='follow' ? 1 : 0;
+  let walkT = 0;   // longest walk to a new exercise spot this phase (added to the phase's time)
+  figs.forEach((f,i)=>{
+    // players beyond this part's count stand aside, hidden, until a part needs them
+    f.hidden = i>=partPlayers(ph);
+    if(f.hidden){ f.mv=null; f.ex=null; f.handT=null; f.sup=null; f.grip=null; f.thr=null; f.pb=null; f.poseFn=null; f.plant=0; return; }
+    f.holdBall = !!ph.holdBall;   // ball held in both hands
+    f.oneHand = ph.oneHand ?? null;   // ball balanced on one hand (1 = right, 0 = left)
+    const s = { x:(ph.xs||START)[i], z:ph.zs ? ph.zs[i] : ph.z, face:ph.faces ? ph.faces[i] : ph.face, idle:ph.idle };
+    // ex + keep: the exercise script carries on (speed can change; go:true starts a waiting script)
+    if(!snap && ph.ex && ph.keep && f.ex && f.ex.name===ph.ex){ f.ex.speed=ph.speed??1; f.ex.stop=ph.stopAt??null; if(ph.go && !f.ex.go){ f.ex.go=true; f.ex.goT=f.ex.prog; } return; }
+    // partner games on the same leg carry on; go:true starts one that's waiting
+    if(!snap && ph.pb && f.pb && f.pb.st===ph.pb.st){ if(ph.pb.go && !f.pb.go){ f.pb.go=true; f.pb.t0=t+(ph.delay||0); } f.pb.speed=ph.speed||1; return; }
+    if(!snap && ph.thr && f.thr && f.thr.st===ph.thr.st){ if(ph.thr.go && !f.thr.go){ f.thr.go=true; f.thr.t0=t+(ph.delay||0); } f.thr.speed=ph.speed||1; return; }
+    f.face=s.face; f.idle=s.idle; f.rate=ph.rate; f.idleSpeed=1; f.fnOn=false;
+    f.thr = ph.thr && !snap ? { st:ph.thr.st, isA:i%2===0, go:!!ph.thr.go, t0:t+(ph.delay||0), speed:ph.speed||1, prog:THR.AR, ph:i*1.7 } : null;
+    if(ph.pb && !snap){   // each player's spot and the direction to the partner
+      const j=i^1, ox=(ph.xs)[j]-s.x, oz=(ph.zs ? ph.zs[j] : ph.z)-s.z, L=Math.hypot(ox,oz)||1;
+      f.pb={ st:ph.pb.st, isA:i%2===0, go:!!ph.pb.go, palms:!!ph.pb.palms, t0:t+(ph.delay||0), speed:ph.speed||1, prog:0, x0:s.x, z0:s.z, u:[ox/L, oz/L], ph:i*1.3 };
+    } else f.pb=null;
+    f.poseFn = f.thr ? thrPose : f.pb ? pbPose : null;
+    f.ex=null; f.handT=null; f.sup=null; f.grip=null; f.plant=0; f.pinW=null; f.armW=null; f.around=null; f.customJ=null;
+    f.ballW = null;
+    if(snap){ f.x=s.x; f.z=s.z; f.mv=null; f.yaw=s.face; }
+    // a new spot: walk there (turning to walk if it's more than a step or two away), then turn to face
+    const d=Math.hypot(s.x-f.x, s.z-f.z);
+    if(!snap && d>.06 && !(ph.keep && f.mv && f.mv.to[0]===s.x && f.mv.to[1]===s.z)){
+      const dur=ph.dur||Math.max(.9, d/1.25 + .4), turn=d>1.2;
+      f.mv={ from:[f.x,f.z], to:[s.x,s.z], t0:t+(ph.delay||0)+i*.06, dur, turn };
+      walkT=Math.max(walkT, (ph.delay||0)+i*.06+dur+(turn || Math.abs(wrap(s.face-f.yaw))>.3 ? 1.25 : .7));   // + settling out of the exercise and turning
+    } else if(!snap && !(f.mv && ph.keep)) f.mv=null;
+    if(ph.ex){   // the exercise script from the phase's spot, once the player is there and facing the right way
+      if(snap) f.q=Q20(pose.stand());
+      f.ex={ name:ph.ex, t0:t+(ph.delay||0), prog:0, speed:ph.speed??1, x0:s.x, z0:s.z, face0:s.face, i, lag:(ph.lag??.12)*i, opt:ph.opt||{}, go:!!ph.go, goT:0, walk:!!f.mv, stop:ph.stopAt??null };
+      if(snap){ f.mode='ex'; f.tw=1; }
+      return;
+    }
+    if(snap){ f.idleClock=0; snapFigW(f); }
+  });
+  if(snap){
+    cam.follow.heading=ph.view; cam.blend=cam.blendTarget;
+    setCam(cam, lookCam(cam.overview), followCam(cam.follow, camFigs(ph), 0, true), cam.blend);
+  }
+  // fast-forward: run to the end of the exercise from where the players really are (a voiceover
+  // that held an earlier step longer has moved the script on)
+  if(!snap && ph.ff && ph.ex){
+    const fs=shown().filter(f=>f.ex && f.ex.name===ph.ex && !f.ex.walk);
+    if(fs.length){ const left=Math.max(...fs.map(f=>EX[ph.ex].END + f.ex.lag - f.ex.prog));
+      return Math.max(3, (Math.max(0, left)+.4)/(ph.speed||1) + .6); }
+  }
+  return (ph.hold ?? (ph.delay||0)+(ph.dur||0)+1.7) + (snap ? 0 : walkT);   // seconds until Auto advances
+}
+
+function updateScene(t, dt){
+  shown().forEach(f=>wuUpdate(f, t, dt));
+  if(coachOn) wuUpdate(coach, t, dt);
+  cam.blend += clamp(cam.blendTarget-cam.blend, -dt/1.4, dt/1.4);   // 1.4 s crane up/down
+  setCam(cam, lookCam(cam.overview), followCam(cam.follow, camFigs(phases[current]), dt, false), cam.blend);
+}
+
+// ── Drawing a player: the engine's figure (same rig, kit and proportions), with the exercise contacts —
+//    hands on the hips / a partner / the ground, forearms flat — placed by arm IK. guide 'ex': the
+//    exercise's own highlight, always drawn round the body, never through it.
+function wuFigureItems(f, items, guide){
+  const J=bodyJ(f), s=Math.sin(f.yaw), c=Math.cos(f.yaw), tc=TEAM[f.team];
+  const W = b=>worldOf(f, b);
+  const push = it=>{ if(it) items.push(it); };
+  if(guide==='ex' && f.ex && !f.ex.walk && EX[f.ex.name].guide) EX[f.ex.name].guide(cam, f, J, W, push);
+  [0,1].forEach(i=>{
+    const hip=W(J['hip'+i]), knee=W(J['knee'+i]), ank=W(J['ank'+i]), toe=W(J['toe'+i]);
+    const midT=lerp3(hip,knee,.45), sockTop=lerp3(knee,ank,.4), waist=add3(hip,[0,.03,0]);
+    push(segItem(midT, knee, .13, SKIN));
+    push(segItem(waist, midT, .19, SHORTS, .04));      // drawn before the shirt, so the shirt covers its top
+    push(segItem(knee, sockTop, .115, SKIN));
+    push(segItem(sockTop, ank, .12, tc));
+    push(segItem(ank, toe, .105, BOOT));
+  });
+  push(segItem(add3(W(J.hip0),[0,.03,0]), add3(W(J.hip1),[0,.03,0]), .22, SHORTS, .04));
+  // Torso reads wide from the front/back, narrow side-on
+  const vx=f.x-cam.pos[0], vz=f.z-cam.pos[2], vn=Math.hypot(vx,vz)||1;
+  const facing=Math.abs((vx*s+vz*c)/vn);
+  push(segItem(W(J.base), W(J.neck), .22+.14*facing, tc, .02));
+  [0,1].forEach(i=>{
+    const sh=W(J['sh'+i]);
+    let el=W(J['el'+i]), ha=W(J['hand'+i]);
+    if(f.grip){ const k=i?1:-1; [el,ha]=ikArm(sh, f.grip[i], [c*k, .6, -s*k]); }   // hands on the partner's legs
+    else if(f.plant && !(f.pinW && f.pinW[i]===null)){   // hands planted on the ground: world pins (f.pinW) or under the shoulders' plank spot
+      const k=i?1:-1, pin=f.pinW ? f.pinW[i] : W([k*.2, .02, .44]);
+      [el,ha]=ikArm(sh, lerp3(ha, pin, f.plant), [c*k*.6 - s*.5, .2, -s*k*.6 - c*.5]);   // elbows out and back
+    }
+    else if(f.armW && f.armW[i]){   // hands on a world target (partner games)
+      const k=i?1:-1;
+      [el,ha]=ikArm(sh, f.armW[i], [k*.8*c - .3*s, -.4, -k*.8*s - .3*c]);   // elbows out, down and back
+    }
+    if(f.handT){ const T=f.handT(J, i, W); if(T){ const k=i?1:-1; [el,ha]=ikArm(sh, T, [k*.8*c - .3*s, -.3, -k*.8*s - .3*c]); } }   // hand on a target (hips, partner's shoulder)
+    if(f.sup && f.sup.w[i]>0){   // forearm flat on the ground (elbow under the shoulder, hand forward along sup.fwd), blended from a planted hand
+      const k=i?1:-1, w=f.sup.w[i], fa=[sh[0]+f.sup.fwd[0]*B.LF, .03, sh[2]+f.sup.fwd[1]*B.LF];
+      const hp = f.pinW && f.pinW[i] ? f.pinW[i] : W([k*.2, .02, .44]);
+      [el,ha]=ikArm(sh, lerp3(hp, fa, w), lerp3([c*k*.6 - s*.5, .2, -s*k*.6 - c*.5], [0,-1,0], w));
+    }
+    const sl=lerp3(sh,el,.55);
+    push(segItem(sl, el, .085, SKIN));
+    push(segItem(sh, sl, .105, tc, -.001));
+    push(segItem(el, ha, .08, SKIN));
+  });
+  const H=W(J.head);
+  push(segItem(W(J.neck), H, .09, SKIN, .01));
+  // Head: hair at the back, eyes at the front — together they show where the head faces
+  const hy=f.yaw+f.headTurn, hs=Math.sin(hy), hc=Math.cos(hy);
+  const head=dotItem(H, .12, SKIN, -.01);
+  push(head);
+  push(dotItem([H[0]-hs*.04, H[1]+.035, H[2]-hc*.04], .112, HAIR, -.005));
+  [-1,1].forEach(k=>{
+    const eye=dotItem([H[0]+hs*.1+hc*k*.045, H[1]+.01, H[2]+hc*.1-hs*k*.045], .022, '#111', -.03);
+    if(eye && head && eye.raw < head.raw && !(f.rollRot && f.rollRot.th>.3 && !f.rollRot.eyes)) items.push(eye);   // face turned away while lying on the side
+  });
+}
+
+function renderScene(){
+  document.getElementById('ground').setAttribute('d', `M0 ${horizonY(cam).toFixed(1)}H360V400H0Z`);
+  let st='';
+  for(let z=0; z<HALF_Z+40; z+=4) st += polyC(cam, quad(-TOUCH_X, z, TOUCH_X, Math.min(z+2, HALF_Z+40)));
+  document.getElementById('stripes').setAttribute('d', st);
+  document.getElementById('field').setAttribute('d', FIELD.map(q=>polyC(cam,q)).join(''));
+  const AR = PARTS[phases[current].part].area || [-AW, 0, AW, PA_D];   // work area outline (x0, z0, x1, z1)
+  document.getElementById('area').setAttribute('d', polyC(cam, quad(AR[0], AR[1], AR[2], AR[3])));
+  document.getElementById('areaLine').setAttribute('d',
+    lineC(cam,[AR[0],0,AR[1]],[AR[2],0,AR[1]]) + lineC(cam,[AR[2],0,AR[1]],[AR[2],0,AR[3]]) +
+    lineC(cam,[AR[2],0,AR[3]],[AR[0],0,AR[3]]) + lineC(cam,[AR[0],0,AR[3]],[AR[0],0,AR[1]]));
+  LABELS.forEach((L,i)=>{
+    const s=project(cam, L.at), el=labelEls[i];
+    if(s[2]<.6 || (L.part && L.part!==phases[current].part)){ el.setAttribute('x',-999); return; }
+    el.setAttribute('x', s[0].toFixed(1)); el.setAttribute('y', s[1].toFixed(1));
+  });
+  callEl.setAttribute('x', -999);
+
+  // Coach's direction: dashed arrow on the ground from each player's spot to the next landing spot
+  let dd='', hd='';
+  figs.forEach(f=>{
+    if(f.hidden || !f.ex || f.ex.walk) return;
+    const a=EX[f.ex.name].arrow ? EX[f.ex.name].arrow(f.ex, f) : null; if(!a) return;
+    const dx=a[1][0]-a[0][0], dz=a[1][1]-a[0][1], L=Math.hypot(dx,dz), ux=dx/L, uz=dz/L;
+    const s=[a[0][0]+ux*.3, 0, a[0][1]+uz*.3], e=[a[1][0]-ux*.35, 0, a[1][1]-uz*.35];
+    dd += lineC(cam, s, e);
+    hd += polyC(cam, [[e[0]+ux*.3,0,e[2]+uz*.3], [e[0]-uz*.16,0,e[2]+ux*.16], [e[0]+uz*.16,0,e[2]-ux*.16]]);
+  });
+  document.getElementById('dirs').setAttribute('d', dd);
+  document.getElementById('dirHeads').setAttribute('d', hd);
+
+  const items=[];
+  (PARTS[phases[current].part].cones || CONES).forEach(c=>{ const it=coneH(cam,c[0],c[1],c[2]); if(it) items.push(it); });
+  if(repsOn){
+    const f0=figs[0], el=document.getElementById('reps');
+    if(f0.ex && EX[f0.ex.name].count) el.textContent=EX[f0.ex.name].count(f0.ex, repsOn);
+    else if(f0.pb){   // set timer and points
+      const Pb=f0.pb, G=pbState(Math.min(Pb.prog, PB.SET));
+      el.textContent=`${Pb.st ? 'Right' : 'Left'} leg · ${clamp(Math.floor(Pb.prog), 0, PB.SET)} / ${PB.SET} s · Points ${G.score[0]}–${G.score[1]}`;
+    } else if(f0.thr){   // throw counter: goes up as each catch happens
+      const T=f0.thr, n = clamp(Math.floor((T.prog-THR.REL-THR.FLY)/THR.CYC)+1, 0, THR.N);
+      el.textContent=`${T.st ? 'Right' : 'Left'} leg · Throw ${n} / ${THR.N}`;
+    }
+  }
+
+  // Highlight on the player nearest the camera
+  let near=null, nd=1e9;
+  shown().forEach(f=>{ const d=toCam(cam,[f.x,1,f.z])[2]; if(d<nd){ nd=d; near=f; } });
+  figs.forEach((f,i)=>{
+    const bs=ballShadows[i];
+    if(f.hidden){ shadows[i].setAttribute('rx', 0); bs.setAttribute('rx', 0); return; }
+    if(ballsOn && f.oneHand!=null){   // ball sitting on the outstretched palm
+      const Jq=fkW(f.q), h=Jq['hand'+f.oneHand], e=Jq['el'+f.oneHand], d=sub3(h,e), L=Math.hypot(...d)||1;
+      const p=worldOf(f, [h[0]+d[0]/L*.06, h[1]+.12, h[2]+d[2]/L*.06]);   // on the palm, just past the wrist
+      ballItems(cam, p, items); placeShadow(bs, p[0], p[2], .12, Math.max(0, p[1]-.1)*.6);
+    }
+    else if(ballsOn && f.holdBall){ const p=handsMid(f); ballItems(cam, p, items); placeShadow(bs, p[0], p[2], .12, Math.max(0, p[1]-.1)*.6); }   // ball in both hands
+    else if(ballsOn && f.ballW){ ballItems(cam, f.ballW, items); placeShadow(bs, f.ballW[0], f.ballW[2], .12, 0); }   // player's own ball
+    else bs.setAttribute('rx', 0);
+    wuFigureItems(f, items, guideOn && f===near ? guideOn : false);
+    placeShadow(shadows[i], f.x, f.z, .36, f.lift);
+  });
+  PAIRS.forEach((P,k)=>{
+    const A=figs[P.a], el=shadows[figs.length+1+k];
+    if(!ballsOn || !A.thr){ el.setAttribute('rx', 0); return; }
+    const p=ballPos(P, A, figs[P.b]);
+    ballItems(cam, p, items);
+    placeShadow(el, p[0], p[2], .12, Math.max(0, p[1]-.1)*.6);
+  });
+  const cShadow = shadows[figs.length];
+  if(coachOn){ wuFigureItems(coach, items, false); placeShadow(cShadow, coach.x, coach.z, .36, coach.lift); }
+  else cShadow.setAttribute('rx', 0);
+  drawItems(pool, items);
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  UI                                                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+let current=0, isAuto=false, timer=null;
+const now = ()=>performance.now()/1000;
+// ── Voiceover: the device reads each step aloud (Web Speech API). Auto waits for the sentence to finish ──
+// Spoken text = ph.say, else ph.desc; the first step of each part opens with the exercise name.
+const VO = { on:false, ok:typeof speechSynthesis!=='undefined' && typeof SpeechSynthesisUtterance!=='undefined', voice:null, done:true, doneAt:0, endAt:0 };
+function pickVoice(){   // the most natural English voice the device has
+  const vs = VO.ok ? speechSynthesis.getVoices() : [];
+  const score = v=>(/premium|enhanced|natural|neural|online/i.test(v.name) ? 4 : 0) +
+    (/samantha|ava|allison|aria|jenny|google us english|google uk english female|daniel|serena|karen/i.test(v.name) ? 2 : 0) + (/en[-_]US/i.test(v.lang) ? 1 : 0);
+  VO.voice = vs.filter(v=>/^en([-_]|$)/i.test(v.lang)).sort((a,b)=>score(b)-score(a))[0] || null;
+}
+if(VO.ok){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+// Calm delivery: a little slower than normal speech, one sentence at a time with a short breath between
+const VO_RATE = .86, VO_GAP = .55;
+function sayText(i){
+  const ph=phases[i];
+  let s = ph.say ?? ph.desc;
+  if(!i || ph.part!==phases[i-1].part) s = `Part ${ph.part}. ${PARTS[ph.part].name.replace(/^E\d+\s*·\s*/, '')}. ${s}`;
+  return s.replace(/(\d)\s*–\s*(\d)/g, '$1 to $2').replace(/°/g, ' degrees').replace(/\s*×\s*/g, ' by ')
+          .replace(/(\d)v(\d)/g, '$1 v $2').replace(/\s*—\s*/g, ', ');
+}
+function speak(i){
+  if(!VO.on || !VO.ok) return;
+  hush(); VO.on=true;
+  const text = sayText(i), parts = (text.match(/[^.!?:]+[.!?:]*/g)||[]).map(s=>s.trim()).filter(Boolean);
+  const run = {};  VO.run = run;
+  VO.done=false; VO.endAt = now() + text.split(/\s+/).length/(2.5*VO_RATE) + parts.length*VO_GAP + 2;   // in case the device never reports the end
+  const say = k=>{
+    if(VO.run!==run) return;
+    if(k>=parts.length){ VO.done=true; VO.doneAt=now(); return; }
+    const u = new SpeechSynthesisUtterance(parts[k]);
+    if(VO.voice){ u.voice=VO.voice; u.lang=VO.voice.lang; } else u.lang='en-US';
+    u.rate=VO_RATE; u.pitch=.98;
+    u.onend = u.onerror = ()=>{ if(VO.run===run) VO.gapT=setTimeout(()=>say(k+1), VO_GAP*1000); };
+    VO.u=u; speechSynthesis.speak(u);
+  };
+  say(0);
+}
+function hush(){ if(VO.ok) speechSynthesis.cancel(); clearTimeout(VO.gapT); VO.run=null; VO.done=true; VO.u=null; }
+// still talking (or just finished: a short beat before the next step)
+const talking = ()=>VO.on && ((!VO.done && now()<VO.endAt) || now()-VO.doneAt < .9);
+function toggleVoice(){
+  VO.on=!VO.on;
+  const b=document.getElementById('voiceBtn');
+  b.classList.toggle('on', VO.on); b.textContent = VO.on ? '🔊 Voiceover: On' : '🔈 Voiceover: Off';
+  if(VO.on) speak(current); else hush();
+}
+if(!VO.ok) document.getElementById('voiceRow').style.display='none';
+
+function retrigger(el, cls){ el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+function applyPhase(idx, snap){
+  const ph=phases[idx], dur=applyScene(idx, now(), snap);
+  const P=PARTS[ph.part], name=document.getElementById('partName');
+  if(name.dataset.part!==ph.part){
+    name.dataset.part=ph.part;
+    document.getElementById('partTitle').textContent=P.title; if(P.sub) document.getElementById('subLine').textContent=P.sub;
+    name.innerHTML=`${P.name}<span class="part-time">${P.time}</span>`; retrigger(name,'show');
+  }
+  const cue=document.getElementById('cue'), card=document.getElementById('card');
+  if(ph.cue){ cue.textContent=ph.cue; retrigger(cue,'show'); } else cue.classList.remove('show');
+  // card = { k: small red heading, big: main line, sub: detail } — replaces animating repeat sets
+  if(ph.card){
+    card.innerHTML=`<div class="k">${ph.card.k}</div><div class="big">${ph.card.big}</div><div class="sub">${ph.card.sub}</div>`;
+    retrigger(card,'show');
+  } else card.classList.remove('show');
+  document.getElementById('desc').textContent=ph.desc;
+  document.querySelectorAll('.step-dot').forEach((d,i)=>{
+    d.classList.toggle('active', i===idx);
+    d.classList.toggle('done',   i<idx);
+  });
+  document.getElementById('prevBtn').style.opacity = idx===0 ? '0.3':'1';
+  document.getElementById('nextBtn').style.opacity = idx===phases.length-1 ? '0.3':'1';
+  speak(idx);
+  return dur;
+}
+
+function changePhase(dir){
+  const next=clamp(current+dir, 0, phases.length-1);
+  if(next!==current){ current=next; applyPhase(current); }
+}
+
+// Auto: each phase says how long to wait before the next (cues can change mid-set)
+function scheduleNext(wait){
+  timer=setTimeout(function go(){
+    if(talking()){ timer=setTimeout(go, 150); return; }   // voiceover: let the sentence finish
+    if(current<phases.length-1){ current++; scheduleNext(applyPhase(current)); }
+    else stopAuto();
+  }, Math.max(2600, wait*1000));
+}
+function toggleAuto(){
+  if(isAuto){ stopAuto(); hush(); return; }
+  isAuto=true;
+  document.getElementById('playBtn').textContent='⏸ Pause';
+  if(current===phases.length-1){ current=0; applyPhase(0, true); }
+  scheduleNext(0);
+}
+function stopAuto(){
+  isAuto=false; clearTimeout(timer);
+  document.getElementById('playBtn').textContent='▶ Auto';
+}
+
+let last=now();
+function frame(){
+  const t=now(), dt=clamp(t-last, 1/240, .05); last=t;
+  updateScene(t, dt); renderScene();
+  requestAnimationFrame(frame);
+}
+
+phases.forEach((ph,i)=>{
+  const d=document.createElement('div');
+  d.className = 'step-dot' + (i && ph.part!==phases[i-1].part ? ' gap' : '');
+  document.getElementById('stepDots').appendChild(d);
+});
+applyPhase(0, true);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
